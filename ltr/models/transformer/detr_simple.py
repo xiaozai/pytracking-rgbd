@@ -91,7 +91,7 @@ class DETR_SIMPLE(nn.Module):
                               search_pos)[0]
 
         # outputs_conf = self.conf_embed(hs)                                    # Song added
-        outputs_coord = self.bbox_embed(hs).sigmoid()                           # Song why do not output the [x,y,w,h] directly ? they are same
+        outputs_coord = self.bbox_embed(hs).sigmoid()                           #
 
         # Post-processing, to scale the output bbox
         boxes = box_ops.box_cxcywh_to_xywh(outputs_coord[-1])                   # force the network to output xywh

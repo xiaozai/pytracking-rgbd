@@ -290,7 +290,9 @@ class TransformerEncoderLayer_query(nn.Module):
                      src_mask: Optional[Tensor] = None,
                      src_key_padding_mask: Optional[Tensor] = None,
                      pos: Optional[Tensor] = None):
-
+        '''
+        Song : query_embed at the first multi-head attention layer is the Template features 
+        '''
         if query_embed is not None:
             q = self.with_pos_embed(query_embed, pos)
             k = self.with_pos_embed(src, pos)
