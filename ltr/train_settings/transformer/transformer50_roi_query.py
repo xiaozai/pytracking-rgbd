@@ -111,7 +111,7 @@ def run(settings):
 
     objective = SetCriterion(losses=['boxes_iou'])
 
-    loss_weight = {'bbox': 1, 'iou': 100} # , 'conf': 100}
+    loss_weight = {'bbox': 1, 'iou': 10} # , 'conf': 100}
 
     actor = actors.TransformerROIActor(net=net, objective=objective, loss_weight=loss_weight)
 
@@ -124,7 +124,7 @@ def run(settings):
         },
     ]
 
-    optimizer = torch.optim.AdamW(param_dicts, lr=1e-5, weight_decay=1e-4) # 1e-4
+    optimizer = torch.optim.AdamW(param_dicts, lr=1e-4, weight_decay=1e-4) # 1e-4
 
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 100) # 200
 

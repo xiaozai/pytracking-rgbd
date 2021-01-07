@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=TT_roiQ
-#SBATCH --output=/home/yans/pytracking/ltr/logs/log-roi-query-output.txt
-#SBATCH --error=/home/yans/pytracking/ltr/logs/log-roi-query-error.txt
+#SBATCH --output=/home/yans/pytracking-rgbd/ltr/logs/log-roi-query-output.txt
+#SBATCH --error=/home/yans/pytracking-rgbd/ltr/logs/log-roi-query-error.txt
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=2
 #SBATCH --time=7-00:00:00
