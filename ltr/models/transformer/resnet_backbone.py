@@ -98,3 +98,19 @@ def build_resnet_backbone(backbone_name='resnet50', output_layers=['layer4'], ba
 
     model = template_backbone(backbone)
     return model
+
+def get_resnet_backbone(backbone_name='resnet50', output_layers=['layer4'], backbone_pretrained=True):
+
+    if backbone_name == 'resnet18':
+        # num_channels = 512
+        backbone = backbones.resnet18(output_layers=output_layers, pretrained=backbone_pretrained)
+    else:
+        # num_channels = 1024 # for layer3, 2048 for layer4
+        backbone = backbones.resnet50(output_layers=output_layers, pretrained=backbone_pretrained)
+    return backbone
+
+def get_position_encoding(hidden_dim=256, position_embedding='learned'):
+    '''
+        Song : to seperately create the pos_embedding and backbone 
+    '''
+    return build_position_encoding(hidden_dim, position_embedding=position_embedding)
