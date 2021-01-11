@@ -34,7 +34,7 @@ def run(settings):
     # Train datasets
     lasot_train = Lasot(settings.env.lasot_dir, split='train')
     got10k_train = Got10k(settings.env.got10k_dir, split='vottrain')
-    # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
+    trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
     coco_train = MSCOCOSeq(settings.env.coco_dir)
 
     # Validation datasets
@@ -74,7 +74,7 @@ def run(settings):
     # dataset_train = sampler.TransformerSampler([lasot_train, trackingnet_train, got10k_train, coco_train], [0.25,1,1,1],
     #                                             samples_per_epoch=26000, max_gap=30,
     #                                             processing=data_processing_train)
-    dataset_train = sampler.TransformerSampler([lasot_train, got10k_train, coco_train], [0.25,1,1],
+    dataset_train = sampler.TransformerSampler([lasot_train, trackingnet_train, got10k_train, coco_train], [0.25,1,1,1],
                                                 samples_per_epoch=26000, max_gap=30,
                                                 processing=data_processing_train)
 

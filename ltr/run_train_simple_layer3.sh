@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=TT_simple
-#SBATCH --output=/home/yans/pytracking-rgbd/ltr/logs/log-simple-layer3-output.txt
-#SBATCH --error=/home/yans/pytracking-rgbd/ltr/logs/log-simple-layer3-error.txt
+#SBATCH --job-name=TTSL3
+#SBATCH --output=/home/yans/pytracking-rgbd/ltr/logs/log-simple-layer3-r3-trackingnet-output.txt
+#SBATCH --error=/home/yans/pytracking-rgbd/ltr/logs/log-simple-layer3-r3-trackingnet-error.txt
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=2
 #SBATCH --time=7-00:00:00
