@@ -13,6 +13,7 @@ dataset_dict = dict(
     tpl=DatasetInfo(module=pt % "tpl", class_name="TPLDataset", kwargs=dict()),
     tpl_nootb=DatasetInfo(module=pt % "tpl", class_name="TPLDataset", kwargs=dict(exclude_otb=True)),
     vot=DatasetInfo(module=pt % "vot", class_name="VOTDataset", kwargs=dict()),
+    # vot2019=DatasetInfo(module=pt % "vot2019", class_name="VOT2019Dataset", kwargs=dict()),
 
     # CDTB , only RGB images
     cdtb_color=DatasetInfo(module=pt % "cdtb_color", class_name="CDTBColorDataset", kwargs=dict()),

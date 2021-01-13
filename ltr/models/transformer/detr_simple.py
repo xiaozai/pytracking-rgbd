@@ -46,7 +46,7 @@ class DETR_SIMPLE(nn.Module):
 
             It returns a dict with the following elements:
 
-               - "pred_conf": the confidence values for the predicted bboxes
+               # - "pred_conf": the confidence values for the predicted bboxes
 
                - "pred_boxes": The normalized boxes coordinates for all queries, represented as
                                (center_x, center_y, height, width). These values are normalized in [0, 1],

@@ -26,7 +26,7 @@ def run_tracker(tracker_name, tracker_param, run_id=None, dataset_name='otb', se
     """
 
     visdom_info = {} if visdom_info is None else visdom_info
-
+    print('Song in run_tracker.py: dataset_name : %s sequence : %s'%(dataset_name, sequence))
     dataset = get_dataset(dataset_name)
 
     if sequence is not None:

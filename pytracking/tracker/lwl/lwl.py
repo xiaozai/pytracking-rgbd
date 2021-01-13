@@ -10,7 +10,9 @@ from pytracking.features.preprocessing import sample_patch_multiscale, sample_pa
 from pytracking.features import augmentation
 from collections import OrderedDict
 
-
+'''
+Song copy this for transformer
+'''
 class LWL(BaseTracker):
     multiobj_mode = 'parallel'
 
@@ -578,4 +580,3 @@ class LWL(BaseTracker):
                                                                                   sample_weight=sample_weights)
 
             self.target_filter = target_filter[0]
-

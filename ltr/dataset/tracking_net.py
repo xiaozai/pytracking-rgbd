@@ -120,6 +120,7 @@ class TrackingNet(BaseVideoDataset):
         set_id = self.sequence_list[seq_id][0]
         vid_name = self.sequence_list[seq_id][1]
         frame_path = os.path.join(self.root, "TRAIN_" + str(set_id), "frames", vid_name, str(frame_id) + ".jpg")
+        # print('Song in Tracking_net dataset, frame_path = : ', frame_path)
         return self.image_loader(frame_path)
 
     def _get_class(self, seq_id):
