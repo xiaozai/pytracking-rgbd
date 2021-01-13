@@ -60,7 +60,17 @@ def parameters():
                                dec_layers=6,
                                pre_norm=False)
 
-    checkpoint_dict = torch.load('/home/yans/pytracking-models/pytracking/networks/DETR_SIMPLE.pth.tar')
+    # pretrained_dict = ...
+    # model_dict = model.state_dict()
+    #
+    # # 1. filter out unnecessary keys
+    # pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+    # # 2. overwrite entries in the existing state dict
+    # model_dict.update(pretrained_dict)
+    # # 3. load the new state dict
+    # model.load_state_dict(pretrained_dict)
+
+    checkpoint_dict = torch.load('/home/yans/pytracking-models/pytracking/networks/DETR_SIMPLE.pth.tar', map_location='cpu')
     params.net.load_state_dict(checkpoint_dict['net'])
     params.net.eval()
 
