@@ -47,6 +47,7 @@ def parameters():
     #                              std=(0.229, 0.224, 0.225))
 
     # params.net = load_network('DETR_SIMPLE.pth.tar')
+    print('Build tracker ...')
     params.net = build_tracker(backbone_name='resnet50',
                                output_layers=['layer3'],
                                num_channels=1024,                       # 2048 for layer4, 1024 for layer3
@@ -69,7 +70,7 @@ def parameters():
     # model_dict.update(pretrained_dict)
     # # 3. load the new state dict
     # model.load_state_dict(pretrained_dict)
-
+    print('Loading models for tracker ...')
     checkpoint_dict = torch.load('/home/yans/pytracking-models/pytracking/networks/DETR_SIMPLE.pth.tar', map_location='cpu')
     params.net.load_state_dict(checkpoint_dict['net'])
     params.net.eval()
@@ -78,5 +79,6 @@ def parameters():
         params.net = params.net.cuda()
 
     # params.vot_anno_conversion_type = 'preserve_area'
-
+    # print('return trackers')
+    # print(params.net)
     return params

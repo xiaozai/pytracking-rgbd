@@ -5,6 +5,7 @@ import numpy as np
 import math
 import time
 from pytracking.features.preprocessing import numpy_to_torch, sample_patch
+import cv2
 
 class Transformer_Simple(BaseTracker):
     '''
@@ -69,13 +70,19 @@ class Transformer_Simple(BaseTracker):
         return out
 
     def track(self, image, info: dict = None) -> dict:
+        print('Song in tracker.track (img )')
         self.debug_info = {}
 
         self.frame_num += 1
         self.debug_info['frame_num'] = self.frame_num
 
         # Convert image
-        im = numpy_to_torch(image) # [1, C, H, W]
+        # 1) crop image centered at previous prediction
+        # 2) resize cropped image to 288x288
+
+        h, w, c = image.shape
+        im = cv2.resize(image, (288, 288))
+        im = numpy_to_torch(im) # [1, C, H, W]
 
         # im = self.net.preprocess_image(im)
         im = im / 255
@@ -90,12 +97,14 @@ class Transformer_Simple(BaseTracker):
         # Crop search region , based on the previous target pos and img_sample_sz
         # remember how to convert the predicted box back to the orginal size
         # search_region, patch_coord = sample_patch(im, self.pos, self.img_sample_sz, self.output_sz)
-
         pred_pos = self.net(im, self.template, self.template_bb) # xywh
-
+        pred_pos = pred_pos['pred_boxes'].detach().cpu().numpy()[0]
         # convert the predicted pos back to image coords
         # pred_pos = self.convert_to_image_coords(pred_pos, ...)
         # self.pos = pred_pos
+
+        # 3) back to the image Coordinates 
+        pred_pos = pred_pos * h  / 288.0
 
         out = {'target_bbox': pred_pos}
 
