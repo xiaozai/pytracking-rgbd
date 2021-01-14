@@ -5,6 +5,7 @@ class EnvironmentSettings:
         self.tensorboard_dir = self.workspace_dir + '/tensorboard/'    # Directory for tensorboard files.
         self.pretrained_networks = self.workspace_dir + '/pretrained_networks/'
         self.lasot_dir = '/home/yans/Datasets/LaSOTBenchmark/'
+        self.lasotdepth_dir = '/home/yans/Datasets/EstimatedDepth/LaSOT/'
         self.got10k_dir = '/home/yans/Datasets/Got10k/train/'
         self.trackingnet_dir = '/home/yans/Datasets/TrackingNet/'
         self.coco_dir = '/home/yans/Datasets/COCO/'

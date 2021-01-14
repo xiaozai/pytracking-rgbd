@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.optim as optim
-from ltr.dataset import Lasot, TrackingNet, MSCOCOSeq, Got10k, CDTB_dcolormap
+from ltr.dataset import Lasot, TrackingNet, MSCOCOSeq, Got10k, CDTB_dcolormap, LasotDepth
 from ltr.data import processing, sampler, LTRLoader
 import ltr.models.bbreg.atom as atom_models
 from ltr import actors
@@ -10,7 +10,7 @@ import ltr.data.transforms as tfm
 
 def run(settings):
     # Most common settings are assigned in the settings struct
-    settings.description = 'ATOM IoUNet with default settings, but additionally using CDTB colormap for training.'
+    settings.description = 'ATOM IoUNet with default settings, using the estimated depth of LaSOT colormap for training.'
     settings.batch_size = 64
     settings.num_workers = 8
     settings.print_interval = 1
@@ -28,7 +28,8 @@ def run(settings):
     # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
     # coco_train = MSCOCOSeq(settings.env.coco_dir)
 
-    cdtb_train = CDTB_dcolormap(settings.env.cdtb_dir, split='train')
+    # cdtb_train = CDTB_dcolormap(settings.env.cdtb_dir, split='train')
+    lasot_depth_train = LasotDepth(settings.env.lasotdepth_dir)
 
     # Validation datasets
     # got10k_val = Got10k(settings.env.got10k_dir, split='votval')
@@ -69,7 +70,7 @@ def run(settings):
     # The sampler for training
     # dataset_train = sampler.ATOMSampler([lasot_train, got10k_train, trackingnet_train, coco_train], [1,1,1,1],
     #                             samples_per_epoch=1000*settings.batch_size, max_gap=50, processing=data_processing_train)
-    dataset_train = sampler.ATOMSampler([cdtb_train], [1],
+    dataset_train = sampler.ATOMSampler([lasot_depth_train], [1],
                                 samples_per_epoch=1000*settings.batch_size, max_gap=50, processing=data_processing_train)
 
     # The loader for training
