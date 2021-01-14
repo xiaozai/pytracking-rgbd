@@ -6,106 +6,93 @@ import math
 import time
 from pytracking.features.preprocessing import numpy_to_torch, sample_patch
 import cv2
+from ltr.data.processing_utils import sample_target, transform_image_to_crop, crop_and_resize
+
 
 class Transformer_Simple(BaseTracker):
     '''
-    Transformer_Simple, only use the first frames as the template
-
-    only need to overload the functions : initialize and track
+         the DETR_SIMPLE  network,
+            - initialize(template, info) -> crop and resize template images
+            - track(search_imgs, template_imgs, template_bb) -> xywh
     '''
     def initialize(self, template, info: dict) -> dict:
-        '''
-        Song : To initialize the tracker with the template feature maps
-
-            we just extract the template feature maps for tracking
-
-            our network doesnot require to crop the image ???
-        '''
+        print('Start to initialize the Transformer_Simple ....')
         self.frame_num = 1
         if not self.params.has('device'):
             self.params.device = 'cuda' if self.params.use_gpu else 'cpu'
-
-        # Song, the DETR_SIMPLE  network, net(search_imgs, template_imgs, template_bb) -> xywh
-        self.net = self.params.net
-
-        # Convert template image, using the 1st image as the Template
-        self.template = numpy_to_torch(template) # [1, 3, H ,W]
 
         # Time initialization
         tic = time.time()
         # Output
         out = {}
 
-        # Get target position and size
+        self.net = self.params.net
+
+        # Convert template image, using the 1st image as the Template
         state = info['init_bbox']
-        # init_mask = info.get('init_mask', None)
+        self.prev_box = torch.Tensor(state)
+        crop_center = torch.Tensor([self.prev_box[1] + (self.prev_box[3] - 1)/2, self.prev_box[0] + (self.prev_box[2] - 1)/2])
+        search_sz = torch.Tensor([self.params.search_area_scale * self.prev_box[3], self.params.search_area_scale * self.prev_box[2]])
 
-        # Set target center and target size
-        # self.pos = torch.Tensor([state[1] + (state[3] - 1)/2, state[0] + (state[2] - 1)/2])
-        # self.target_sz = torch.Tensor([state[3], state[2]])
+        crop_box = [crop_center[0] - search_sz[0] / 2 , crop_center[1] - search_sz[1] / 2, search_sz[0], search_sz[1]] # [x, y, w, h]
+        crop_box = [int(cb) for cb in crop_box]
 
-        self.template_bb = torch.Tensor(state).view(1, 4)
+        template_crop, template_bb_crop = crop_and_resize(template, self.prev_box, crop_box, self.params.output_sz)
+
+        self.template = numpy_to_torch(template_crop)                           # [1, 3, H ,W]
+        self.template = self.template / 255
+        self.template -= self.params._mean
+        self.template /= self.params._std
+
+        self.template_bb = torch.Tensor(template_bb_crop).view(1, 4)
 
         if self.params.use_gpu:
+            self.net = self.net.cuda()
             self.template = self.template.cuda()
             self.template_bb = self.template_bb.cuda()
-
-        # Set sizes
-        # sz = self.params.image_sample_size
-        # self.img_sample_sz = torch.Tensor([sz, sz] if isinstance(sz, int) else sz)
-        # self.img_support_sz = self.img_sample_sz
-
-        # Set search area.
-        # search_area = torch.prod(self.target_sz * self.params.search_area_scale).item()
-        # self.target_scale = math.sqrt(search_area) / self.img_sample_sz.prod().sqrt()
-
-        # Target size in base scale
-        # self.base_target_sz = self.target_sz / self.target_scale
-
-        # Extract and transform sample
-        # self.init_template_feat = self.extract_template_feature(template, self.pos)
 
         out['time'] = time.time() - tic
 
         return out
 
     def track(self, image, info: dict = None) -> dict:
-        print('Song in tracker.track (img )')
+
         self.debug_info = {}
 
         self.frame_num += 1
         self.debug_info['frame_num'] = self.frame_num
 
+        # Crop and Resize
+        crop_center = torch.Tensor([self.prev_box[1] + (self.prev_box[3] - 1)/2, self.prev_box[0] + (self.prev_box[2] - 1)/2])
+        search_sz = torch.Tensor([self.params.search_area_scale * self.prev_box[3], self.params.search_area_scale * self.prev_box[2]])
+        crop_box = [crop_center[0] - search_sz[0] / 2, crop_center[1] - search_sz[1] / 2, search_sz[0], search_sz[1]]
+        crop_box = [int(cb) for cb in crop_box]
+        im, _ = crop_and_resize(image, None, crop_box, self.params.output_sz)
+        im = numpy_to_torch(im)                                                 # [1, C, H, W]
         # Convert image
-        # 1) crop image centered at previous prediction
-        # 2) resize cropped image to 288x288
-
-        h, w, c = image.shape
-        im = cv2.resize(image, (288, 288))
-        im = numpy_to_torch(im) # [1, C, H, W]
-
-        # im = self.net.preprocess_image(im)
         im = im / 255
-        im -= self.params._mean
-        im /= self.params._std
+        im -= self.params._mean # Tensor
+        im /= self.params._std  # Tensor
+
         if self.params.use_gpu:
             im = im.cuda()
-        #
-        # if self.params.use_gpu:
-        #     im = im.cuda()
 
-        # Crop search region , based on the previous target pos and img_sample_sz
-        # remember how to convert the predicted box back to the orginal size
-        # search_region, patch_coord = sample_patch(im, self.pos, self.img_sample_sz, self.output_sz)
-        pred_pos = self.net(im, self.template, self.template_bb) # xywh
-        pred_pos = pred_pos['pred_boxes'].detach().cpu().numpy()[0]
+        pred_box = self.net(im, self.template, self.template_bb)                # xywh
+        pred_box = pred_box['pred_boxes'].detach().cpu().numpy()[0]
         # convert the predicted pos back to image coords
-        # pred_pos = self.convert_to_image_coords(pred_pos, ...)
-        # self.pos = pred_pos
+        print('predicted box = ', pred_box)
+        pred_box = self.back_to_image_coords(pred_box, crop_box, self.params.output_sz)
+        print('scaled box = ', pred_box)
 
-        # 3) back to the image Coordinates 
-        pred_pos = pred_pos * h  / 288.0
-
-        out = {'target_bbox': pred_pos}
+        self.prev_box = pred_box
+        out = {'target_bbox': pred_box}
 
         return out
+
+    def back_to_image_coords(pred_box, crop_bb, output_sz):
+        rescale_factor = 1.0 * output_sz[0] /  crop_bb[2]
+        ori_box = pred_box / rescale_factor
+        ori_box[0] += crop_bb[0]
+        ori_box[1] += crop_bb[1]
+
+        return ori_box

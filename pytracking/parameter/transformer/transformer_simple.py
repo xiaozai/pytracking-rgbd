@@ -19,8 +19,9 @@ def parameters():
 
     # params.image_sample_size = (30 * 16, 52 * 16) # [480, 832], (288, 288)
     params.search_area_scale = 5.0
-    # params.border_mode = 'inside_major'
+    params.border_mode = 'replicate'
     # params.patch_max_scale_change = None
+    params.output_sz = (288, 288) # torch.Tensor([288, 288])
 
     # Learning parameters
     # params.sample_memory_size = 32
@@ -38,7 +39,7 @@ def parameters():
     std = (0.229, 0.224, 0.225)
     params._std = torch.Tensor(std).view(1, -1, 1, 1)
 
-    params.init_with_box = True
+    # params.init_with_box = True
     # params.lower_init_weight = True
 
     # params.net = NetWithBackbone(net_path=,
@@ -60,8 +61,8 @@ def parameters():
                                enc_layers=6,
                                dec_layers=6,
                                pre_norm=False)
-
-    # pretrained_dict = ...
+    # # If load a part of the pretrained_dct
+    # pretrained_dict = torch.load('/home/yans/pytracking-models/pytracking/networks/DETR_SIMPLE.pth.tar', map_location='cpu')
     # model_dict = model.state_dict()
     #
     # # 1. filter out unnecessary keys
@@ -70,15 +71,10 @@ def parameters():
     # model_dict.update(pretrained_dict)
     # # 3. load the new state dict
     # model.load_state_dict(pretrained_dict)
-    print('Loading models for tracker ...')
+    print('Loading models for DETR(Simple version) ...')
     checkpoint_dict = torch.load('/home/yans/pytracking-models/pytracking/networks/DETR_SIMPLE.pth.tar', map_location='cpu')
     params.net.load_state_dict(checkpoint_dict['net'])
     params.net.eval()
 
-    if params.use_gpu:
-        params.net = params.net.cuda()
-
     # params.vot_anno_conversion_type = 'preserve_area'
-    # print('return trackers')
-    # print(params.net)
     return params
