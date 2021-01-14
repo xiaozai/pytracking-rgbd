@@ -63,11 +63,16 @@ class Transformer_Simple(BaseTracker):
         self.debug_info['frame_num'] = self.frame_num
 
         # Crop and Resize
-        crop_center = torch.Tensor([self.prev_box[1] + (self.prev_box[3] - 1)/2, self.prev_box[0] + (self.prev_box[2] - 1)/2])
-        search_sz = torch.Tensor([self.params.search_area_scale * self.prev_box[3], self.params.search_area_scale * self.prev_box[2]])
-        crop_box = [crop_center[0] - search_sz[0] / 2, crop_center[1] - search_sz[1] / 2, search_sz[0], search_sz[1]]
-        crop_box = [int(cb) for cb in crop_box]
-        im, _ = crop_and_resize(image, None, crop_box, self.params.output_sz)
+        # crop_center = torch.Tensor([self.prev_box[1] + (self.prev_box[3] - 1)/2, self.prev_box[0] + (self.prev_box[2] - 1)/2])
+        # search_sz = torch.Tensor([self.params.search_area_scale * self.prev_box[3], self.params.search_area_scale * self.prev_box[2]])
+        # crop_box = [crop_center[0] - search_sz[0] / 2, crop_center[1] - search_sz[1] / 2, search_sz[0], search_sz[1]]
+        # crop_box = [int(cb) for cb in crop_box]
+        # im, _ = crop_and_resize(image, None, crop_box, self.params.output_sz)
+
+        # Global Search
+        H, W, C = image.shape
+        im = cv2.resize(image, self.params.output_sz)
+
         im = numpy_to_torch(im)                                                 # [1, C, H, W]
         # Convert image
         im = im / 255
@@ -80,8 +85,13 @@ class Transformer_Simple(BaseTracker):
         pred_box = self.net(im, self.template, self.template_bb)                # xywh
         pred_box = pred_box['pred_boxes'].detach().cpu().numpy()[0]
         # convert the predicted pos back to image coords
-        pred_box = self.back_to_image_coords(pred_box, crop_box, self.params.output_sz)
-        # print('pred box = ', pred_box)
+        # pred_box = self.back_to_image_coords(pred_box, crop_box, self.params.output_sz)
+
+        # Back to Global Coordinates
+        pred_box[0] = pred_box[0] * W / self.params.output_sz[1]
+        pred_box[1] = pred_box[1] * H / self.params.output_sz[0]
+        pred_box[2] = pred_box[2] * W / self.params.output_sz[1]
+        pred_box[3] = pred_box[3] * H / self.params.output_sz[0]
 
         if pred_box[2] > 10 and pred_box[3] > 10:
             # update
