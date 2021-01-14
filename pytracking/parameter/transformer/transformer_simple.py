@@ -10,44 +10,15 @@ def parameters():
 
     params.debug = 0
     params.visualization = False
-
-    # params.seg_to_bb_mode = 'var'
-    # params.max_scale_change = (0.95, 1.1)
-    # params.min_mask_area = 100
-
     params.use_gpu = True
-
-    # params.image_sample_size = (30 * 16, 52 * 16) # [480, 832], (288, 288)
     params.search_area_scale = 5.0
     params.border_mode = 'replicate'
-    # params.patch_max_scale_change = None
-    params.output_sz = (288, 288) # torch.Tensor([288, 288])
-
-    # Learning parameters
-    # params.sample_memory_size = 32
-    # params.learning_rate = 0.2
-    # params.init_samples_minimum_weight = 0
-    # params.train_skipping = 5
-
-    # Net optimization params
-    # params.update_target_model = True
-    # params.net_opt_iter = 20
-    # params.net_opt_update_iter = 5
-
+    params.output_sz = (288, 288)
     mean = (0.485, 0.456, 0.406)
     params._mean = torch.Tensor(mean).view(1, -1, 1, 1)
     std = (0.229, 0.224, 0.225)
     params._std = torch.Tensor(std).view(1, -1, 1, 1)
 
-    # params.init_with_box = True
-    # params.lower_init_weight = True
-
-    # params.net = NetWithBackbone(net_path=,
-    #                              use_gpu=params.use_gpu,
-    #                              mean=(0.485, 0.456, 0.406),
-    #                              std=(0.229, 0.224, 0.225))
-
-    # params.net = load_network('DETR_SIMPLE.pth.tar')
     print('Build tracker ...')
     params.net = build_tracker(backbone_name='resnet50',
                                output_layers=['layer3'],
@@ -76,5 +47,4 @@ def parameters():
     params.net.load_state_dict(checkpoint_dict['net'])
     params.net.eval()
 
-    # params.vot_anno_conversion_type = 'preserve_area'
     return params

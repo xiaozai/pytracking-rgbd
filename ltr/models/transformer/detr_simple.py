@@ -37,7 +37,6 @@ class DETR_SIMPLE(nn.Module):
         self.query_proj_encoder = QueryProj_Encoder(num_channels, hidden_dim, query_encoder_size) # Song  assume that the ResNet50 - layer4
 
     def forward(self, search_imgs, template_imgs, template_bb):
-        print('Song in the forwward')
         """ The forward expects a NestedTensor, which consists of:
                - template_imgs : batched images, of shape [batch_size x 3 x H x W], which are the template branch
                - template_bb   : batched bounding boxes, of shape [batch_size x 4], (x,y,w,h)
@@ -65,17 +64,12 @@ class DETR_SIMPLE(nn.Module):
 
             num_test_imgs, batch_size, C, H, W = template_imgs.shape
             template_imgs = template_imgs.view(num_test_imgs*batch_size, C, H, W).clone().requires_grad_()
-        print('song before target sizes...')
         target_sizes = torch.unsqueeze(torch.tensor(search_imgs.shape[-2:]), 0) # [1 x 2], [288x288]
         target_sizes = target_sizes.repeat(search_imgs.shape[0], 1)             # [batch_size x 2]
         target_sizes = target_sizes.cuda()
-        print('Song 1')
-        print(search_imgs.shape)
         search_features = self.backbone(search_imgs)[self.output_layers[-1]]
-        print('Song after search_features')
         search_pos = self.pos_embed(search_features).to(search_features.dtype)
         search_mask = None                                                      # Song : we don't use the mask yet
-        print('Song 2 ')
         template_features = self.backbone(template_imgs)[self.output_layers[-1]]# [batch, 2048, 9, 9] for layer4, [batch, 1024, 18, 18] for layer3
         # PrROIPooling on template branch Add batch_index to rois, bb is [batch, 4]
         batch_size = template_bb.shape[0]
@@ -85,17 +79,15 @@ class DETR_SIMPLE(nn.Module):
         bb[:, 2:4] = bb[:, 0:2] + bb[:, 2:4]
         roi_bb = torch.cat((batch_index, bb), dim=1)
         template_roi = self.prroi_pool(template_features, roi_bb)               # [batch, 2048, roi_windowsize, roi_windowsize]
-        print('Song 3')
         # Transformer
         hs = self.transformer(self.input_proj(search_features),
                               search_mask,
                               self.query_proj_encoder(template_roi),
                               self.query_proj_decoder(template_roi),
                               search_pos)[0]
-        print('Song 4')
         # outputs_conf = self.conf_embed(hs)                                    # Song added
         outputs_coord = self.bbox_embed(hs).sigmoid()                           #
-        print('Song 5')
+
         # Post-processing, to scale the output bbox
         boxes = box_ops.box_cxcywh_to_xywh(outputs_coord[-1])                   # force the network to output xywh
         img_h, img_w = target_sizes.unbind(1)                                   # img_h : [batch_size, ], img_w : [batch_size, ]
@@ -104,7 +96,7 @@ class DETR_SIMPLE(nn.Module):
 
         batch_size = target_sizes.shape[0]
         boxes = boxes.view(batch_size, -1).clone().requires_grad_()
-        print('Song 6')
+
         out = {'pred_boxes': boxes}
 
         return out

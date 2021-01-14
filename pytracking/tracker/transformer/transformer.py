@@ -80,16 +80,17 @@ class Transformer_Simple(BaseTracker):
         pred_box = self.net(im, self.template, self.template_bb)                # xywh
         pred_box = pred_box['pred_boxes'].detach().cpu().numpy()[0]
         # convert the predicted pos back to image coords
-        print('predicted box = ', pred_box)
         pred_box = self.back_to_image_coords(pred_box, crop_box, self.params.output_sz)
-        print('scaled box = ', pred_box)
+        # print('pred box = ', pred_box)
 
-        self.prev_box = pred_box
+        if pred_box[2] > 10 and pred_box[3] > 10:
+            # update
+            self.prev_box = pred_box
         out = {'target_bbox': pred_box}
 
         return out
 
-    def back_to_image_coords(pred_box, crop_bb, output_sz):
+    def back_to_image_coords(self,pred_box, crop_bb, output_sz):
         rescale_factor = 1.0 * output_sz[0] /  crop_bb[2]
         ori_box = pred_box / rescale_factor
         ori_box[0] += crop_bb[0]

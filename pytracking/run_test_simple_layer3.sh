@@ -15,6 +15,6 @@ module load all/libjpeg-turbo/2.0.0-GCCcore-7.3.0
 
 source activate pytracking
 
-python run_tracker.py transformer transformer_simple --dataset_name vot --sequence ants3 --debug 0
+python run_tracker.py transformer transformer_simple --dataset_name vot --debug 0
 
 conda deactivate
