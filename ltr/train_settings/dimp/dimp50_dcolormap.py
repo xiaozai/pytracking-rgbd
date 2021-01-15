@@ -1,105 +1,120 @@
 import torch.nn as nn
 import torch.optim as optim
-from ltr.dataset import Lasot, TrackingNet, MSCOCOSeq, Got10k, CDTB_dcolormap, Lasot_depth, CDTB_depth # CDTB
+from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, Lasot_depth, CDTB_depth
 from ltr.data import processing, sampler, LTRLoader
-import ltr.models.bbreg.atom as atom_models
+from ltr.models.tracking import dimpnet
+import ltr.models.loss as ltr_losses
 from ltr import actors
 from ltr.trainers import LTRTrainer
 import ltr.data.transforms as tfm
+from ltr import MultiGPU
 
 
 def run(settings):
-    # Most common settings are assigned in the settings struct
-    settings.description = 'ATOM IoUNet with default settings, using the estimated depth of LaSOT colormap for training.'
-    settings.batch_size = 64
+    settings.description = 'Default train settings for DiMP with ResNet50 as backbone.'
+    settings.batch_size = 10
     settings.num_workers = 8
+    settings.multi_gpu = False
     settings.print_interval = 1
     settings.normalize_mean = [0.485, 0.456, 0.406]
     settings.normalize_std = [0.229, 0.224, 0.225]
     settings.search_area_factor = 5.0
+    settings.output_sigma_factor = 1/4
+    settings.target_filter_sz = 4
     settings.feature_sz = 18
     settings.output_sz = settings.feature_sz * 16
-    settings.center_jitter_factor = {'train': 0, 'test': 4.5}
-    settings.scale_jitter_factor = {'train': 0, 'test': 0.5}
+    settings.center_jitter_factor = {'train': 3, 'test': 4.5}
+    settings.scale_jitter_factor = {'train': 0.25, 'test': 0.5}
+    settings.hinge_threshold = 0.05
+    # settings.print_stats = ['Loss/total', 'Loss/iou', 'ClfTrain/clf_ce', 'ClfTrain/test_loss']
 
     # Train datasets
     # lasot_train = Lasot(settings.env.lasot_dir, split='train')
     # got10k_train = Got10k(settings.env.got10k_dir, split='vottrain')
     # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
     # coco_train = MSCOCOSeq(settings.env.coco_dir)
-
-    # cdtb_train = CDTB_dcolormap(settings.env.cdtb_dir, split='train')
     lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype='colormap')
 
     # Validation datasets
     # got10k_val = Got10k(settings.env.got10k_dir, split='votval')
-    # cdtb_val = CDTB_dcolormap(settings.env.cdtb_dir, split='val')
     cdtb_val = CDTB_depth(settings.env.cdtb_dir, split='val', dtype='colormap')
-    # cdtb_val = CDTB(settings.env.cdtb_dir, split='val', dtype='colormap')
 
-    # The joint augmentation transform, that is applied to the pairs jointly
+    # Data transform
     transform_joint = tfm.Transform(tfm.ToGrayscale(probability=0.05))
 
-    # The augmentation transform applied to the training set (individually to each image in the pair)
     transform_train = tfm.Transform(tfm.ToTensorAndJitter(0.2),
                                     tfm.Normalize(mean=settings.normalize_mean, std=settings.normalize_std))
 
-    # The augmentation transform applied to the validation set (individually to each image in the pair)
     transform_val = tfm.Transform(tfm.ToTensor(),
                                   tfm.Normalize(mean=settings.normalize_mean, std=settings.normalize_std))
 
-    # Data processing to do on the training pairs
-    proposal_params = {'min_iou': 0.1, 'boxes_per_frame': 16, 'sigma_factor': [0.01, 0.05, 0.1, 0.2, 0.3]}
-    data_processing_train = processing.ATOMProcessing(search_area_factor=settings.search_area_factor,
+    # The tracking pairs processing module
+    output_sigma = settings.output_sigma_factor / settings.search_area_factor
+    proposal_params = {'min_iou': 0.1, 'boxes_per_frame': 8, 'sigma_factor': [0.01, 0.05, 0.1, 0.2, 0.3]}
+    label_params = {'feature_sz': settings.feature_sz, 'sigma_factor': output_sigma, 'kernel_sz': settings.target_filter_sz}
+    data_processing_train = processing.DiMPProcessing(search_area_factor=settings.search_area_factor,
                                                       output_sz=settings.output_sz,
                                                       center_jitter_factor=settings.center_jitter_factor,
                                                       scale_jitter_factor=settings.scale_jitter_factor,
                                                       mode='sequence',
                                                       proposal_params=proposal_params,
+                                                      label_function_params=label_params,
                                                       transform=transform_train,
                                                       joint_transform=transform_joint)
 
-    # Data processing to do on the validation pairs
-    data_processing_val = processing.ATOMProcessing(search_area_factor=settings.search_area_factor,
+    data_processing_val = processing.DiMPProcessing(search_area_factor=settings.search_area_factor,
                                                     output_sz=settings.output_sz,
                                                     center_jitter_factor=settings.center_jitter_factor,
                                                     scale_jitter_factor=settings.scale_jitter_factor,
                                                     mode='sequence',
                                                     proposal_params=proposal_params,
+                                                    label_function_params=label_params,
                                                     transform=transform_val,
                                                     joint_transform=transform_joint)
 
-    # The sampler for training
-    # dataset_train = sampler.ATOMSampler([lasot_train, got10k_train, trackingnet_train, coco_train], [1,1,1,1],
-    #                             samples_per_epoch=1000*settings.batch_size, max_gap=50, processing=data_processing_train)
-    dataset_train = sampler.ATOMSampler([lasot_depth_train], [1],
-                                samples_per_epoch=1000*settings.batch_size, max_gap=50, processing=data_processing_train)
+    # Train sampler and loader
+    dataset_train = sampler.DiMPSampler([lasot_depth_train], [0.25,1,1,1],
+                                        samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
+                                        processing=data_processing_train)
 
-    # The loader for training
     loader_train = LTRLoader('train', dataset_train, training=True, batch_size=settings.batch_size, num_workers=settings.num_workers,
                              shuffle=True, drop_last=True, stack_dim=1)
 
-    # The sampler for validation
-    # dataset_val = sampler.ATOMSampler([got10k_val], [1], samples_per_epoch=500*settings.batch_size, max_gap=50,
-    #                                   processing=data_processing_val)
-    dataset_val = sampler.ATOMSampler([cdtb_val], [1], samples_per_epoch=500*settings.batch_size, max_gap=50,
+    # Validation samplers and loaders
+    dataset_val = sampler.DiMPSampler([cdtb_val], [1], samples_per_epoch=5000, max_gap=30,
+                                      num_test_frames=3, num_train_frames=3,
                                       processing=data_processing_val)
 
-    # The loader for validation
     loader_val = LTRLoader('val', dataset_val, training=False, batch_size=settings.batch_size, num_workers=settings.num_workers,
                            shuffle=False, drop_last=True, epoch_interval=5, stack_dim=1)
 
     # Create network and actor
-    net = atom_models.atom_resnet18(backbone_pretrained=True)
-    objective = nn.MSELoss()
-    actor = actors.AtomActor(net=net, objective=objective)
+    net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=True, optim_iter=5,
+                            clf_feat_norm=True, clf_feat_blocks=0, final_conv=True, out_feature_dim=512,
+                            optim_init_step=0.9, optim_init_reg=0.1,
+                            init_gauss_sigma=output_sigma * settings.feature_sz, num_dist_bins=100,
+                            bin_displacement=0.1, mask_init_factor=3.0, target_mask_act='sigmoid', score_act='relu')
+
+    # Wrap the network for multi GPU training
+    if settings.multi_gpu:
+        net = MultiGPU(net, dim=1)
+
+    objective = {'iou': nn.MSELoss(), 'test_clf': ltr_losses.LBHinge(threshold=settings.hinge_threshold)}
+
+    loss_weight = {'iou': 1, 'test_clf': 100, 'test_init_clf': 100, 'test_iter_clf': 400}
+
+    actor = actors.DiMPActor(net=net, objective=objective, loss_weight=loss_weight)
 
     # Optimizer
-    optimizer = optim.Adam(actor.net.bb_regressor.parameters(), lr=1e-3)
+    optimizer = optim.Adam([{'params': actor.net.classifier.filter_initializer.parameters(), 'lr': 5e-5},
+                            {'params': actor.net.classifier.filter_optimizer.parameters(), 'lr': 5e-4},
+                            {'params': actor.net.classifier.feature_extractor.parameters(), 'lr': 5e-5},
+                            {'params': actor.net.bb_regressor.parameters()},
+                            {'params': actor.net.feature_extractor.parameters(), 'lr': 2e-5}],
+                           lr=2e-4)
+
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.2)
 
-    # Create trainer
     trainer = LTRTrainer(actor, [loader_train, loader_val], optimizer, settings, lr_scheduler)
 
-    # Run training (set fail_safe=False if you are debugging)
     trainer.train(50, load_latest=True, fail_safe=True)

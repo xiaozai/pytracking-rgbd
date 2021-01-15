@@ -163,7 +163,6 @@ class Lasot_depth(BaseVideoDataset):
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
         else:
             img = cv2.merge((dp, dp, dp)) # H * W * 3
-            print(img.shape)
         return img
 
     def _get_class(self, seq_path):

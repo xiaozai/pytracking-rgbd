@@ -1,5 +1,4 @@
 from .lasot import Lasot
-from .lasot_depth import Lasot_depth
 from .got10k import Got10k
 from .tracking_net import TrackingNet
 from .imagenetvid import ImagenetVID
@@ -18,3 +17,5 @@ from .cdtb_dcolormap import CDTB_dcolormap
 from .cdtb_depth import CDTB_depth
 from .cdtb_color import CDTB_color
 from .cdtb_color_depth import CDTB_color_depth
+from .lasot_depth import Lasot_depth
+# from .cdtb import CDTB
