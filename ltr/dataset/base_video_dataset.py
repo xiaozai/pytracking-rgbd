@@ -106,4 +106,3 @@ class BaseVideoDataset(torch.utils.data.Dataset):
 
         """
         raise NotImplementedError
-

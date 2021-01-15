@@ -46,6 +46,7 @@ class Lasot_depth(BaseVideoDataset):
         """
         root = env_settings().lasotdepth_dir if root is None else root
         rgb_root = env_settings().lasot_dir if rgb_root is None else rgb_root
+        self.rgb_root = rgb_root
         super().__init__('LaSOTDepth', root, image_loader)
 
         self.dtype = dtype                                                      # colormap or depth
@@ -156,12 +157,13 @@ class Lasot_depth(BaseVideoDataset):
         '''
         img_path = self._get_frame_path(seq_path, frame_id)
         dp = cv2.imread(img_path, -1)
-        dp = cv2.normalize(image, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+        dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
         dp = np.asarray(dp, dtype=np.uint8)
         if self.dtype == 'colormap':
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
         else:
             img = cv2.merge((dp, dp, dp)) # H * W * 3
+            print(img.shape)
         return img
 
     def _get_class(self, seq_path):

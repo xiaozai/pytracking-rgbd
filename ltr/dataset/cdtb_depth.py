@@ -60,7 +60,7 @@ class CDTB_depth(BaseVideoDataset):
         self.class_list = list(self.seq_per_class.keys())
         self.class_list.sort()
 
-        self.dtype dtype
+        self.dtype = dtype
 
     def get_name(self):
         return 'cdtb_depth'
@@ -132,7 +132,7 @@ class CDTB_depth(BaseVideoDataset):
     def _get_frame_path(self, seq_path, frame_id):
         return os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))    # frames start from 1
 
-    def _get_frame(self, seq_path, frame_id, depth_threshold=8000):
+    def _get_frame(self, seq_path, frame_id, depth_threshold=10000):
         # return self.image_loader(self._get_frame_path(seq_path, frame_id))
         image_path = self._get_frame_path(seq_path, frame_id)
         im = cv.imread(image_path, -1)
