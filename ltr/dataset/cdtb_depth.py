@@ -144,7 +144,7 @@ class CDTB_depth(BaseVideoDataset):
             im = np.expand_dims(im, axis=2)
             im = np.tile(im, (1,1,3))
         else:
-            im = cv2.applyColorMap(im, cv2.COLORMAP_JET)
+            im = cv.applyColorMap(im, cv.COLORMAP_JET)
         return im
 
     # def get_class_name(self, seq_id):

@@ -58,14 +58,14 @@ class Tracker:
         if self.run_id is None:
             self.results_dir = '{}/{}/{}'.format(env.results_path, self.name, self.parameter_name)
             self.segmentation_dir = '{}/{}/{}'.format(env.segmentation_path, self.name, self.parameter_name)
-            self.scoremap_dir = '{}/{}/{}'.format(env.scoremap_path, self.name, self.parameter_name)
+            # self.scoremap_dir = '{}/{}/{}'.format(env.scoremap_path, self.name, self.parameter_name)
         else:
             # self.results_dir = '{}/{}/{}_{:03d}'.format(env.results_path, self.name, self.parameter_name, self.run_id)
             # self.segmentation_dir = '{}/{}/{}_{:03d}'.format(env.segmentation_path, self.name, self.parameter_name, self.run_id)
             # self.scoremap_dir = '{}/{}/{}_{:03d}'.format(env.scoremap_path, self.name, self.parameter_name, self.run_id)
             self.results_dir = '{}/{}/{}'.format(env.results_path, self.name, self.parameter_name)
             self.segmentation_dir = '{}/{}/{}'.format(env.segmentation_path, self.name, self.parameter_name)
-            self.scoremap_dir = '{}/{}/{}'.format(env.scoremap_path, self.name, self.parameter_name)
+            # self.scoremap_dir = '{}/{}/{}'.format(env.scoremap_path, self.name, self.parameter_name)
 
         tracker_module_abspath = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tracker', self.name))
         if os.path.isdir(tracker_module_abspath):
@@ -171,26 +171,26 @@ class Tracker:
         # time[i] is either the processing time for frame i, or an OrderedDict containing processing times for each
         # object in frame i
         # segmentation[i] is the multi-label segmentation mask for frame i (numpy array)
-
-        ''' Song :
-                Inputs :
-                    - depth only  H*W*3 , e.g. [depth, depth, depth] normalized in (0, 255)
-                    - rgb only , H*W*3
-                    - colormap, H*W*3
-                    - rgb + depth, for this, the flag depth_usage is required
-
-                depth_usage:
-                    - default, nothing to do
-                    - hist_depth_mask, to select the candidate depth value and to perform the Gaussian probability operation
-                    - kmeans_depth_mask, not implemented yet
-                    - more ...
-        '''
+        #
+        # ''' Song :
+        #         Inputs :
+        #             - depth only  H*W*3 , e.g. [depth, depth, depth] normalized in (0, 255)
+        #             - rgb only , H*W*3
+        #             - colormap, H*W*3
+        #             - rgb + depth, for this, the flag depth_usage is required
+        #
+        #         depth_usage:
+        #             - default, nothing to do
+        #             - hist_depth_mask, to select the candidate depth value and to perform the Gaussian probability operation
+        #             - kmeans_depth_mask, not implemented yet
+        #             - more ...
+        # '''
 
         output = {'target_bbox': [],
                   'time': [],
                   'segmentation': [],
-                  'confidence' : [],    # Song !!!!
-                  'score_map': []}      # Song !!!!
+                  'confidence' : []}     # Song !!!!
+                  # 'score_map': []}      # Song !!!!
 
         def _store_outputs(tracker_out: dict, defaults=None):
             defaults = {} if defaults is None else defaults
@@ -201,23 +201,27 @@ class Tracker:
 
         # Initialize
         # image = self._read_image(seq.frames[0])
-        image = self._read_image(seq.frames[0],
-                                 is_depth=init_info.get('init_is_depth'),
-                                 depth_threshold=init_info.get('init_depth_threshold'))
+        if seq.dtype == 'depth':
+            image = self._read_depth(seq.frames[0], depth_threshold=seq.depth_threshold)
+        elif seq.dtype == 'colormap':
+            image = self._read_colormap_from_depth(seq.frames[0], depth_threshold=seq.depth_threshold)
+        else:
+            # seq.dtype == 'color'
+            image = self._read_image(seq.frames[0])
 
-        ''' Song, use the depth !!!!!
-            - to initialize the Template branch (the first frame)
-        '''
-        if seq.depth_frames:
-            depth = self._read_depth(seq.depth_frames[0])
-            bbox = init_info.get('init_bbox')
-            depth_usage = init_info.get('init_depth_usage')
-            if depth_usage == 'hist_depth_mask':
-                image = self._hist_depth_mask(image, depth, bbox)
-            # elif depth_useage == 'default':
-            #     pass
-            # else:
-            #     pass
+        # ''' Song, use the depth !!!!!
+        #     - to initialize the Template branch (the first frame)
+        # '''
+        # if seq.depth_frames:
+        #     depth = self._read_depth(seq.depth_frames[0])
+        #     bbox = init_info.get('init_bbox')
+        #     depth_usage = init_info.get('init_depth_usage')
+        #     if depth_usage == 'hist_depth_mask':
+        #         image = self._hist_depth_mask(image, depth, bbox)
+        #     # elif depth_useage == 'default':
+        #     #     pass
+        #     # else:
+        #     #     pass
 
         if tracker.params.visualization and self.visdom is None:
             self.visualize(image, init_info.get('init_bbox'))
@@ -233,8 +237,8 @@ class Tracker:
         init_default = {'target_bbox': init_info.get('init_bbox'),
                         'time': time.time() - start_time,
                         'segmentation': init_info.get('init_mask'),
-                        'confidence' : 1.0,
-                        'score_map': np.zeros((224,224), dtype=float)}
+                        'confidence' : 1.0}
+                        # 'score_map': np.zeros((224,224), dtype=float)}
 
         _store_outputs(out, init_default)
 
@@ -249,25 +253,29 @@ class Tracker:
                 else:
                     time.sleep(0.1)
 
-            ''' Song, use the depth !!!!!
-                - to process the following test images in tracker.track()
-            '''
+            # ''' Song, use the depth !!!!!
+            #     - to process the following test images in tracker.track()
+            # '''
             # image = self._read_image(frame_path)
-            image = self._read_image(frame_path,
-                                     is_depth=init_info.get('init_is_depth'),
-                                     depth_threshold=init_info.get('init_depth_threshold'))
-            if seq.depth_frames:
-                depth = self._read_depth(seq.depth_frames[frame_num]) # Song
+            if seq.dtype == 'depth':
+                image = self._read_depth(frame_path, depth_threshold=seq.depth_threshold)
+            elif seq.dtype == 'colormap':
+                image = self._read_colormap_from_depth(frame_path, depth_threshold=seq.depth_threshold)
             else:
-                depth = None
+                image = self._read_image(frame_path)
+            #
+            # if seq.depth_frames:
+            #     depth = self._read_depth(seq.depth_frames[frame_num]) # Song
+            # else:
+            #     depth = None
 
             start_time = time.time()
 
             info = seq.frame_info(frame_num)
             info['previous_output'] = prev_output
-
-            info['depth'] = depth  # Song
-            info['depth_usage'] = init_info.get('init_depth_usage')  # Song
+            #
+            # info['depth'] = depth  # Song
+            # info['depth_usage'] = init_info.get('init_depth_usage')  # Song
 
             out = tracker.track(image, info)
 
@@ -280,7 +288,7 @@ class Tracker:
             elif tracker.params.visualization:
                 self.visualize(image, out['target_bbox'], segmentation) # Song !!!!
 
-        for key in ['target_bbox', 'segmentation', 'confidence', 'score_map']:
+        for key in ['target_bbox', 'segmentation', 'confidence']: #, 'score_map']:
             if key in output and len(output[key]) <= 1:
                 output.pop(key)
 
@@ -761,37 +769,57 @@ class Tracker:
             self.reset_tracker()
             print("Resetting target pos to gt!")
 
-    # def _read_image(self, image_file: str):
-    #     im = cv.imread(image_file)
-    #     return cv.cvtColor(im, cv.COLOR_BGR2RGB)
+    def _read_image(self, image_file: str):
+        im = cv.imread(image_file)
+        return cv.cvtColor(im, cv.COLOR_BGR2RGB)
 
-    def _read_image(self, image_file: str, is_depth=False, depth_threshold=8000):
-        if is_depth:
-            '''
-            Song : read the depth only, and return [depth, depth, depth] , W*H*3,
-                   normalize the depth into [0, 255]
-                   Treat the depth images as the gray images
-            '''
-            im = cv.imread(image_file, -1)
-            im[im>depth_threshold] = depth_threshold
-            im = cv.normalize(im, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-            im = np.asarray(im, dtype=np.uint8)
-            im = np.expand_dims(im, axis=2)
-            im = np.tile(im, (1,1,3))
-            return im
-        else:
-            '''
-            Original code for loading RGB images
-            '''
-            im = cv.imread(image_file)
-            return cv.cvtColor(im, cv.COLOR_BGR2RGB)
+    # def _read_image(self, image_file: str, is_depth=False, depth_threshold=8000):
+    #     if is_depth:
+    #         '''
+    #         Song : read the depth only, and return [depth, depth, depth] , W*H*3,
+    #                normalize the depth into [0, 255]
+    #                Treat the depth images as the gray images
+    #         '''
+    #         im = cv.imread(image_file, -1)
+    #         im[im>depth_threshold] = depth_threshold
+    #         im = cv.normalize(im, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+    #         im = np.asarray(im, dtype=np.uint8)
+    #         im = np.expand_dims(im, axis=2)
+    #         im = np.tile(im, (1,1,3))
+    #         return im
+    #     else:
+    #         '''
+    #         Original code for loading RGB images
+    #         '''
+    #         im = cv.imread(image_file)
+    #         return cv.cvtColor(im, cv.COLOR_BGR2RGB)
 
-    def _read_depth(self, image_file: str):
+    def _read_depth(self, image_file: str, depth_threshold=None):
         '''
-        Song : to read the depth images, keep all values
+        - read depth images,
+        - normalized to [0, 255]
+        - stack by channels, [dp, dp, dp]
         '''
         dp = cv.imread(image_file, -1)
+        if depth_threshold is not None:
+            dp[dp > depth_threshold] = depth_threshold
+        dp = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+        dp = np.asarray(dp, dtype=np.uint8)
+        dp = cv.merge((dp, dp, dp))
         return dp
+
+    def _read_colormap_from_depth(self, image_file: str, depth_threshold=None):
+        '''
+        - read depth images,
+        - convert to colormap by opencv
+        '''
+        dp = cv.imread(image_file, -1)
+        if depth_threshold is not None:
+            dp[dp > depth_threshold] = depth_threshold
+        dp = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+        dp = np.asarray(dp, dtype=np.uint8)
+        colormap = cv.applyColorMap(dp, cv.COLORMAP_JET)
+        return colormap
 
     def _hist_depth_mask(self, color, depth, box, num_bins=8):
         '''

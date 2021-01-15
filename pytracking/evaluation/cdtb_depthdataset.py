@@ -43,8 +43,8 @@ class CDTBDepthDataset(BaseDataset):
             y2 = np.amax(gt_y_all, 1).reshape(-1,1)
 
             ground_truth_rect = np.concatenate((x1, y1, x2-x1, y2-y1), 1)
-        # when loading the depth, it converts the depth into [0, 255], W*H*3
-        return Sequence(sequence_name, frames, 'cdtb_depth', ground_truth_rect, is_depth=True, depth_threshold=8000)
+
+        return Sequence(sequence_name, frames, 'cdtb_depth', ground_truth_rect, dtype='depth', depth_threshold=None)
 
     def __len__(self):
         return len(self.sequence_list)

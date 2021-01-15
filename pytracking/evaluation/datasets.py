@@ -16,16 +16,9 @@ dataset_dict = dict(
     # vot2019=DatasetInfo(module=pt % "vot2019", class_name="VOT2019Dataset", kwargs=dict()),
 
     # CDTB , only RGB images
-    cdtb_color=DatasetInfo(module=pt % "cdtb_color", class_name="CDTBColorDataset", kwargs=dict()),
-    cdtb_color_val=DatasetInfo(module=pt % "cdtb_color_val", class_name="CDTBColorValDataset", kwargs=dict()),
-    # CDTB, only Depth images
-    cdtb_depth=DatasetInfo(module=pt % "cdtb_depth", class_name="CDTBDepthDataset", kwargs=dict()),
-    cdtb_depth_val=DatasetInfo(module=pt % "cdtb_depth_val", class_name="CDTBDepthValDataset", kwargs=dict()),
-    # CDTB, only Depth colormap images
-    cdtb_dcolormap=DatasetInfo(module=pt % "cdtb_dcolormap", class_name="CDTBDColormapDataset", kwargs=dict()),
-    cdtb_dcolormap_val=DatasetInfo(module=pt % "cdtb_dcolormap_val", class_name="CDTBDColormapValDataset", kwargs=dict()),
-    # CDTB, RGB+Depth images
-    cdtb_color_depth_val=DatasetInfo(module=pt % "cdtb_color_depth_val", class_name="CDTBColorDepthValDataset", kwargs=dict()),
+    cdtb_color=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='color')),
+    cdtb_depth=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='depth')),
+    cdtb_dcolormap=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='colormap')),
 
     trackingnet=DatasetInfo(module=pt % "trackingnet", class_name="TrackingNetDataset", kwargs=dict()),
     got10k_test=DatasetInfo(module=pt % "got10k", class_name="GOT10KDataset", kwargs=dict(split='test')),
