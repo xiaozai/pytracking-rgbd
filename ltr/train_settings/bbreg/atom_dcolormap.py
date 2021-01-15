@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.optim as optim
-from ltr.dataset import Lasot, TrackingNet, MSCOCOSeq, Got10k, CDTB_dcolormap, LasotDepth
+from ltr.dataset import Lasot, TrackingNet, MSCOCOSeq, Got10k, CDTB_dcolormap, LasotDepth, CDTB_depth
 from ltr.data import processing, sampler, LTRLoader
 import ltr.models.bbreg.atom as atom_models
 from ltr import actors
@@ -29,11 +29,12 @@ def run(settings):
     # coco_train = MSCOCOSeq(settings.env.coco_dir)
 
     # cdtb_train = CDTB_dcolormap(settings.env.cdtb_dir, split='train')
-    lasot_depth_train = LasotDepth(settings.env.lasotdepth_dir)
+    lasot_depth_train = LasotDepth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype='colormap')
 
     # Validation datasets
     # got10k_val = Got10k(settings.env.got10k_dir, split='votval')
-    cdtb_val = CDTB_dcolormap(settings.env.cdtb_dir, split='val')
+    # cdtb_val = CDTB_dcolormap(settings.env.cdtb_dir, split='val')
+    cdtb_val = CDTB_depth(settings.env.cdtb_dir, split='val')
 
     # The joint augmentation transform, that is applied to the pairs jointly
     transform_joint = tfm.Transform(tfm.ToGrayscale(probability=0.05))

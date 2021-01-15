@@ -15,7 +15,7 @@ class CDTB_depth(BaseVideoDataset):
     """ CDTB depth [depth, depth, depth] , H*W*3
     """
 
-    def __init__(self, root=None, image_loader=jpeg4py_loader, split=None, seq_ids=None, data_fraction=None):
+    def __init__(self, root=None, image_loader=jpeg4py_loader, dtype='depth', split=None, seq_ids=None, data_fraction=None):
         """
         args:
             root - path to the got-10k training data. Note: This should point to the 'train' folder inside GOT-10k
@@ -59,6 +59,8 @@ class CDTB_depth(BaseVideoDataset):
 
         self.class_list = list(self.seq_per_class.keys())
         self.class_list.sort()
+
+        self.dtype dtype
 
     def get_name(self):
         return 'cdtb_depth'
@@ -121,7 +123,7 @@ class CDTB_depth(BaseVideoDataset):
         seq_path = self._get_sequence_path(seq_id)
         bbox = self._read_bb_anno(seq_path)
 
-        valid = (bbox[:, 2] > 0) & (bbox[:, 3] > 0)
+        valid = (bbox[:, 2] > 5) & (bbox[:, 3] > 5)
         visible = self._read_target_visible(seq_path)
         visible = visible & valid.byte()
 
@@ -137,8 +139,12 @@ class CDTB_depth(BaseVideoDataset):
         im[im>depth_threshold] = depth_threshold
         im = cv.normalize(im, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
         im = np.asarray(im, dtype=np.uint8)
-        im = np.expand_dims(im, axis=2)
-        im = np.tile(im, (1,1,3))
+
+        if self.dtype == 'depth':
+            im = np.expand_dims(im, axis=2)
+            im = np.tile(im, (1,1,3))
+        else:
+            im = cv2.applyColorMap(im, cv2.COLORMAP_JET)
         return im
 
     # def get_class_name(self, seq_id):

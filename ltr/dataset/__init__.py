@@ -1,5 +1,5 @@
 from .lasot import Lasot
-from .lasotdepth import LasotDepth
+from .lasot_depth import Lasot_depth
 from .got10k import Got10k
 from .tracking_net import TrackingNet
 from .imagenetvid import ImagenetVID

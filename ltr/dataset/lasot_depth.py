@@ -9,9 +9,9 @@ from collections import OrderedDict
 from .base_video_dataset import BaseVideoDataset
 from ltr.data.image_loader import jpeg4py_loader
 from ltr.admin.environment import env_settings
+import cv2
 
-
-class LasotDepth(BaseVideoDataset):
+class Lasot_depth(BaseVideoDataset):
     """ LaSOT dataset.
 
     Publication:
@@ -22,55 +22,40 @@ class LasotDepth(BaseVideoDataset):
 
     Download the dataset from https://cis.temple.edu/lasot/download.html
 
-    Song : estimated the depth images from LaSOT dataset, there are 646 sequences with corresponding depth
+    !!!!! Song : estimated the depth images from LaSOT dataset, there are 646 sequences with corresponding depth !!!!!
+
     """
 
-    def __init__(self, root=None, rgb_root=None, dtype='colormap', image_loader=jpeg4py_loader, vid_ids=None, split=None, data_fraction=None):
+    def __init__(self, root=None, rgb_root=None, dtype='colormap', image_loader=jpeg4py_loader, vid_ids=None): #  split=None, data_fraction=None):
         """
         args:
-            root - path to the lasot dataset.
+
             image_loader (jpeg4py_loader) -  The function to read the images. jpeg4py (https://github.com/ajkxyz/jpeg4py)
                                             is used by default.
             vid_ids - List containing the ids of the videos (1 - 20) used for training. If vid_ids = [1, 3, 5], then the
                     videos with subscripts -1, -3, and -5 from each class will be used for training.
-            split - If split='train', the official train split (protocol-II) is used for training. Note: Only one of
-                    vid_ids or split option can be used at a time.
-            data_fraction - Fraction of dataset to be used. The complete dataset is used by default
+            # split - If split='train', the official train split (protocol-II) is used for training. Note: Only one of
+            #         vid_ids or split option can be used at a time.
+            # data_fraction - Fraction of dataset to be used. The complete dataset is used by default
+
+            rgb_root - path to the lasot rgb dataset
+            root     - path to the lasot depth dataset.
+            dtype    - colormap or depth,
+                        if colormap, it returns the colormap by cv2,
+                        if depth, it returns [depth, depth, depth]
         """
         root = env_settings().lasotdepth_dir if root is None else root
-        rgb_root = env_settings().lasot_dir if root is None else rgb_root
-        super().__init__('LaSOT', root, image_loader)
+        rgb_root = env_settings().lasot_dir if rgb_root is None else rgb_root
+        super().__init__('LaSOTDepth', root, image_loader)
 
-        self.dtype = dtype # colormap or depth
-
-        # Keep a list of all classes
-        self.class_list = [f for f in os.listdir(self.root)]
-        self.class_to_id = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_list)}
-
-        # self.sequence_list = self._build_sequence_list(vid_ids, split)
+        self.dtype = dtype                                                      # colormap or depth
         self.sequence_list = self._build_sequence_list()
 
-        if data_fraction is not None:
-            self.sequence_list = random.sample(self.sequence_list, int(len(self.sequence_list)*data_fraction))
+        self.seq_per_class, self.class_list = self._build_class_list()
+        self.class_list.sort()
+        self.class_to_id = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_list)}
 
-        self.seq_per_class = self._build_class_list()
-
-    def _build_sequence_list(self): # , vid_ids=None, split=None):
-        # if split is not None:
-        #     if vid_ids is not None:
-        #         raise ValueError('Cannot set both split_name and vid_ids.')
-        #     ltr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
-        #
-        #     if split == 'train':
-        #         file_path = os.path.join(ltr_path, 'data_specs', 'lasot_train_split.txt')
-        #     else:
-        #         raise ValueError('Unknown split name.')
-        #     sequence_list = pandas.read_csv(file_path, header=None, squeeze=True).values.tolist()
-        # elif vid_ids is not None:
-        #     sequence_list = [c+'-'+str(v) for c in self.class_list for v in vid_ids]
-        # else:
-        #     raise ValueError('Set either split_name or vid_ids.')
-
+    def _build_sequence_list(self):
         '''
             We only have  the train set, no test set, here we use all 646 videos for training
         '''
@@ -82,17 +67,22 @@ class LasotDepth(BaseVideoDataset):
 
     def _build_class_list(self):
         seq_per_class = {}
+        class_list = []
         for seq_id, seq_name in enumerate(self.sequence_list):
             class_name = seq_name.split('-')[0]
+
+            if class_name not in class_list:
+                class_list.append(class_name)
+
             if class_name in seq_per_class:
                 seq_per_class[class_name].append(seq_id)
             else:
                 seq_per_class[class_name] = [seq_id]
 
-        return seq_per_class
+        return seq_per_class, class_list
 
     def get_name(self):
-        return 'lasot'
+        return 'lasot_depth'
 
     def has_class_info(self):
         return True
@@ -129,44 +119,66 @@ class LasotDepth(BaseVideoDataset):
         return target_visible
 
     def _get_sequence_path(self, seq_id):
+        '''
+        Return :
+                - Depth path
+                - RGB path (original LaSOT path)
+        '''
         seq_name = self.sequence_list[seq_id]
         class_name = seq_name.split('-')[0]
         vid_id = seq_name.split('-')[1]
-
-        # return os.path.join(self.root, class_name, class_name + '-' + vid_id)
-        return os.path.join(self.root, class_name + '-' + vid_id)
+        return os.path.join(self.root, class_name + '-' + vid_id), os.path.join(self.rgb_root, class_name + '-' + vid_id)
 
     def get_sequence_info(self, seq_id):
-        seq_path = self._get_sequence_path(seq_id)
-        bbox = self._read_bb_anno(seq_path)
+        depth_path, rgb_path = self._get_sequence_path(seq_id)
+        bbox = self._read_bb_anno(rgb_path)
 
+        '''
+        if the box is too small, it will be ignored
+        '''
         # valid = (bbox[:, 2] > 0) & (bbox[:, 3] > 0)
         valid = (bbox[:, 2] > 5.0) & (bbox[:, 3] > 5.0)
-        visible = self._read_target_visible(seq_path) & valid.byte()
+        visible = self._read_target_visible(rgb_path) & valid.byte()
 
         return {'bbox': bbox, 'valid': valid, 'visible': visible}
 
     def _get_frame_path(self, seq_path, frame_id):
-        return os.path.join(seq_path, 'img', '{:08}.jpg'.format(frame_id+1))    # frames start from 1
+        '''
+        return depth image path
+        '''
+        return os.path.join(seq_path, 'depth', '{:08}.png'.format(frame_id+1)) # frames start from 1
 
     def _get_frame(self, seq_path, frame_id):
-        return self.image_loader(self._get_frame_path(seq_path, frame_id))
+        '''
+        Return :
+            - colormap from depth image
+            - [depth, depth, depth]
+        '''
+        img_path = self._get_frame_path(seq_path, frame_id)
+        dp = cv2.imread(img_path, -1)
+        dp = cv2.normalize(image, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+        dp = np.asarray(dp, dtype=np.uint8)
+        if self.dtype == 'colormap':
+            img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+        else:
+            img = cv2.merge((dp, dp, dp)) # H * W * 3
+        return img
 
     def _get_class(self, seq_path):
         raw_class = seq_path.split('/')[-2]
         return raw_class
 
     def get_class_name(self, seq_id):
-        seq_path = self._get_sequence_path(seq_id)
-        obj_class = self._get_class(seq_path)
+        depth_path, rgb_path = self._get_sequence_path(seq_id)
+        obj_class = self._get_class(rgb_path)
 
         return obj_class
 
     def get_frames(self, seq_id, frame_ids, anno=None):
-        seq_path = self._get_sequence_path(seq_id)
+        depth_path, rgb_path = self._get_sequence_path(seq_id)
 
-        obj_class = self._get_class(seq_path)
-        frame_list = [self._get_frame(seq_path, f_id) for f_id in frame_ids]
+        obj_class = self._get_class(rgb_path)
+        frame_list = [self._get_frame(depth_path, f_id) for f_id in frame_ids]
 
         if anno is None:
             anno = self.get_sequence_info(seq_id)
