@@ -18,7 +18,7 @@ dataset_dict = dict(
     # CDTB , only RGB images
     cdtb_color=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='color')),
     cdtb_depth=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='depth')),
-    cdtb_dcolormap=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='colormap')),
+    cdtb_colormap=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='colormap', depth_threshold=10000)),
 
     trackingnet=DatasetInfo(module=pt % "trackingnet", class_name="TrackingNetDataset", kwargs=dict()),
     got10k_test=DatasetInfo(module=pt % "got10k", class_name="GOT10KDataset", kwargs=dict(split='test')),

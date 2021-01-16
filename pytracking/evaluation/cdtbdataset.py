@@ -4,7 +4,7 @@ from pytracking.evaluation.data import Sequence, BaseDataset, SequenceList
 
 class CDTBDDataset(BaseDataset):
     """
-    CDTB, RGB dataset, Depth dataset, Colormap dataset
+    CDTB, RGB dataset, Depth dataset, Colormap dataset, RGB+depth
     """
     def __init__(self, dtype='colormap', depth_threshold=None):
         super().__init__()
@@ -18,8 +18,14 @@ class CDTBDDataset(BaseDataset):
     def _construct_sequence(self, sequence_name):
         sequence_path = sequence_name
         nz = 8
-        ext = 'png'
         start_frame = 1
+
+        if self.dtype == 'color':
+            ext = 'jpg'
+        elif self.dtype == 'rgbd':
+            ext = ['jpg', 'png'] # Song not implemented yet
+        else:
+            ext = 'png'
 
         anno_path = '{}/{}/groundtruth.txt'.format(self.base_path, sequence_name)
         try:
@@ -33,9 +39,19 @@ class CDTBDDataset(BaseDataset):
             group = 'depth'
         else:
             group = self.dtype
-        frames = ['{base_path}/{sequence_path}/{group}/{frame:0{nz}}.{ext}'.format(base_path=self.base_path,
-                  sequence_path=sequence_path, group=group, frame=frame_num, nz=nz, ext=ext)
-                  for frame_num in range(start_frame, end_frame+1)]
+
+        if self.dtype == 'rgbd':
+            depth_frames = ['{base_path}/{sequence_path}/depth/{frame:0{nz}}.png'.format(base_path=self.base_path,
+                            sequence_path=sequence_path, frame=frame_num, nz=nz)
+                            for frame_num in range(start_frame, end_frame+1)]
+            color_frames = ['{base_path}/{sequence_path}/color/{frame:0{nz}}.jpg'.format(base_path=self.base_path,
+                            sequence_path=sequence_path, frame=frame_num, nz=nz)
+                            for frame_num in range(start_frame, end_frame+1)]
+            frames = {'color': color_frames, 'depth': depth_frames}
+        else:
+            frames = ['{base_path}/{sequence_path}/{group}/{frame:0{nz}}.{ext}'.format(base_path=self.base_path,
+                      sequence_path=sequence_path, group=group, frame=frame_num, nz=nz, ext=ext)
+                      for frame_num in range(start_frame, end_frame+1)]
 
         # Convert gt
         if ground_truth_rect.shape[1] > 4:

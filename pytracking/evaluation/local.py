@@ -22,7 +22,7 @@ def local_env_settings():
     settings.trackingnet_path = ''
     settings.uav_path = ''
     settings.vot_path = '/home/yans/Datasets/vot2018/sequences/'
-    settings.cdtb_path = '/home/yans/RGBD-benchmarks/CDTB/'
+    settings.cdtb_path = '/home/yans/Datasets/CDTB/'
     settings.youtubevos_dir = ''
 
     return settings

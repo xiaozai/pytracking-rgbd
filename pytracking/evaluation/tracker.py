@@ -773,27 +773,6 @@ class Tracker:
         im = cv.imread(image_file)
         return cv.cvtColor(im, cv.COLOR_BGR2RGB)
 
-    # def _read_image(self, image_file: str, is_depth=False, depth_threshold=8000):
-    #     if is_depth:
-    #         '''
-    #         Song : read the depth only, and return [depth, depth, depth] , W*H*3,
-    #                normalize the depth into [0, 255]
-    #                Treat the depth images as the gray images
-    #         '''
-    #         im = cv.imread(image_file, -1)
-    #         im[im>depth_threshold] = depth_threshold
-    #         im = cv.normalize(im, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-    #         im = np.asarray(im, dtype=np.uint8)
-    #         im = np.expand_dims(im, axis=2)
-    #         im = np.tile(im, (1,1,3))
-    #         return im
-    #     else:
-    #         '''
-    #         Original code for loading RGB images
-    #         '''
-    #         im = cv.imread(image_file)
-    #         return cv.cvtColor(im, cv.COLOR_BGR2RGB)
-
     def _read_depth(self, image_file: str, depth_threshold=None):
         '''
         - read depth images,
