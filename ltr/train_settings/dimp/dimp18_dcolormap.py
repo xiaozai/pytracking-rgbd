@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.optim as optim
-from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, Lasot_depth, CDTB_depth
+from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, Lasot_depth, CDTB
 from ltr.data import processing, sampler, LTRLoader
 from ltr.models.tracking import dimpnet
 import ltr.models.loss as ltr_losses
@@ -38,7 +38,7 @@ def run(settings):
 
     # Validation datasets
     # got10k_val = Got10k(settings.env.got10k_dir, split='votval')
-    cdtb_val = CDTB_depth(settings.env.cdtb_dir, split='val', dtype='colormap')
+    cdtb_val = CDTB(settings.env.cdtb_dir, split='val', dtype='colormap')
 
     # Data transform
     transform_joint = tfm.Transform(tfm.ToGrayscale(probability=0.05))
