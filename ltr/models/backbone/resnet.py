@@ -4,7 +4,9 @@ from collections import OrderedDict
 import torch.utils.model_zoo as model_zoo
 from torchvision.models.resnet import model_urls
 from .base import Backbone
-
+from ltr.external.depthconv.functions import depth_conv
+from ltr.external.depthconv.modules import DepthConv
+from ltr.external.depthavgpooling.modules import Depthavgpooling
 
 def conv3x3(in_planes, out_planes, stride=1, dilation=1):
     """3x3 convolution with padding"""
@@ -77,6 +79,54 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
 
         out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
+
+class Bottleneck_depthaware(nn.Module):
+    expansion = 4
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None, dilation=1):
+        super(Bottleneck, self).__init__()
+        '''
+            replace the conv2 with Depth-aware Conv
+        '''
+        # self.conv1 = DepthConv(inplanes, planes, kernel_size=1, bias=False)
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
+
+        self.bn1 = nn.BatchNorm2d(planes)
+
+        # self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
+        #                        padding=dilation, bias=False, dilation=dilation)
+        self.conv2 = DepthConv(planes, planes, kernel_size=3, stride=stride,
+                               padding=dilation, bias=False, dilation=dilation)
+
+        self.bn2 = nn.BatchNorm2d(planes)
+
+        self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(planes * 4)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x, depth):
+        residual = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out, depth)
         out = self.bn2(out)
         out = self.relu(out)
 
@@ -227,7 +277,7 @@ class ResNet_depthaware(Backbone):
         Conv3_1, Conv4_1, Conv5_1
 
     """
-    def __init__(self, block, layers, output_layers, num_classes=1000, inplanes=64, dilation_factor=1, frozen_layers=()):
+    def __init__(self, block, block_depthaware, layers, output_layers, num_classes=1000, inplanes=64, dilation_factor=1, frozen_layers=()):
         self.inplanes = inplanes
         super(ResNet, self).__init__(frozen_layers=frozen_layers)
         self.output_layers = output_layers
@@ -238,9 +288,12 @@ class ResNet_depthaware(Backbone):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         stride = [1 + (dilation_factor < l) for l in (8, 4, 2)]
         self.layer1 = self._make_layer(block, inplanes, layers[0], dilation=max(dilation_factor//8, 1))
-        self.layer2 = self._make_layer(block, inplanes*2, layers[1], stride=stride[0], dilation=max(dilation_factor//4, 1))
-        self.layer3 = self._make_layer(block, inplanes*4, layers[2], stride=stride[1], dilation=max(dilation_factor//2, 1))
-        self.layer4 = self._make_layer(block, inplanes*8, layers[3], stride=stride[2], dilation=dilation_factor)
+        # self.layer2 = self._make_layer(block, inplanes*2, layers[1], stride=stride[0], dilation=max(dilation_factor//4, 1)) # Conv3_x
+        # self.layer3 = self._make_layer(block, inplanes*4, layers[2], stride=stride[1], dilation=max(dilation_factor//2, 1)) # Conv4_x
+        # self.layer4 = self._make_layer(block, inplanes*8, layers[3], stride=stride[2], dilation=dilation_factor)            # Conv5_x
+        self.layer2 = self._make_layer_depthaware(block, block_depthaware, inplanes*2, layers[1], stride=stride[0], dilation=max(dilation_factor//4, 1)) # Conv3_x
+        self.layer3 = self._make_layer_depthaware(block, block_depthaware, inplanes*4, layers[2], stride=stride[1], dilation=max(dilation_factor//2, 1)) # Conv4_x
+        self.layer4 = self._make_layer_depthaware(block, block_depthaware, inplanes*8, layers[3], stride=stride[2], dilation=dilation_factor)            # Conv5_x
 
         out_feature_strides = {'conv1': 4, 'layer1': 4, 'layer2': 4*stride[0], 'layer3': 4*stride[0]*stride[1],
                                'layer4': 4*stride[0]*stride[1]*stride[2]}
@@ -300,12 +353,31 @@ class ResNet_depthaware(Backbone):
 
         return nn.Sequential(*layers)
 
+    def _make_layer_depthaware(self, block, block_depthaware, planes, blocks, stride=1, dilation=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * block.expansion),
+            )
+
+        layers = []
+        layers.append(block(self.inplanes, planes, stride, downsample, dilation=dilation))
+        self.inplanes = planes * block.expansion
+
+        layers.append(block_depthaware(self.inplanes, planes)) # Conv3_1, Conv4_1, Conv5_1 are depth-aware
+        for i in range(2, blocks):
+            layers.append(block(self.inplanes, planes))
+
+        return nn.Sequential(*layers)
+
     def _add_output_and_check(self, name, x, outputs, output_layers):
         if name in output_layers:
             outputs[name] = x
         return len(output_layers) == len(outputs)
 
-    def forward(self, x, depth=None, output_layers=None):
+    def forward(self, x, depth, output_layers=None):
         """ Forward pass with input x. The output_layers specify the feature blocks which must be returned """
         outputs = OrderedDict()
 
@@ -326,17 +398,17 @@ class ResNet_depthaware(Backbone):
         if self._add_output_and_check('layer1', x, outputs, output_layers):
             return outputs
 
-        x = self.layer2(x)
+        x = self.layer2(x, depth)
 
         if self._add_output_and_check('layer2', x, outputs, output_layers):
             return outputs
 
-        x = self.layer3(x)
+        x = self.layer3(x, depth)
 
         if self._add_output_and_check('layer3', x, outputs, output_layers):
             return outputs
 
-        x = self.layer4(x)
+        x = self.layer4(x, depth)
 
         if self._add_output_and_check('layer4', x, outputs, output_layers):
             return outputs
@@ -420,7 +492,7 @@ def resnet50_depthaware(output_layers=None, pretrained=False, **kwargs):
         for l in output_layers:
             if l not in ['conv1', 'layer1', 'layer2', 'layer3', 'layer4', 'fc']:
                 raise ValueError('Unknown layer: {}'.format(l))
-    model = ResNet_depthaware(Bottleneck, [3, 4, 6, 3], output_layers, **kwargs)
+    model = ResNet_depthaware(Bottleneck, Bottleneck_depthaware, [3, 4, 6, 3], output_layers, **kwargs)
     if pretrained:
         print('loading pretrained ResNet50 ....')
         model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
