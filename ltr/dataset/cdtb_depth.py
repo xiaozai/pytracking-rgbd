@@ -141,8 +141,16 @@ class CDTB_depth(BaseVideoDataset):
         im = np.asarray(im, dtype=np.uint8)
 
         if self.dtype == 'depth':
-            im = np.expand_dims(im, axis=2)
-            im = np.tile(im, (1,1,3))
+            # im = np.expand_dims(im, axis=2)
+            # im = np.tile(im, (1,1,3))
+            im = cv2.merge((im, im, im))
+        elif self.dtype == 'colormap_depth':
+            '''
+            Colormap + depth
+            '''
+            colormap = cv.applyColorMap(im, cv.COLORMAP_JET)
+            r, g, b = cv2.split(colormap)
+            im = cv2.merge((r, g, b, im))
         else:
             im = cv.applyColorMap(im, cv.COLORMAP_JET)
         return im

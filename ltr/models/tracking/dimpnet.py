@@ -94,8 +94,6 @@ class DiMPnet(nn.Module):
         all_feat['classification'] = self.extract_classification_feat(all_feat)
         return OrderedDict({l: all_feat[l] for l in layers})
 
-
-
 @model_constructor
 def dimpnet18(filter_size=1, optim_iter=5, optim_init_step=1.0, optim_init_reg=0.01,
               classification_layer='layer3', feat_stride=16, backbone_pretrained=True, clf_feat_blocks=1,

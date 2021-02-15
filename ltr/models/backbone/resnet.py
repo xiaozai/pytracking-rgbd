@@ -100,6 +100,8 @@ class Bottleneck_depthaware(nn.Module):
         super(Bottleneck, self).__init__()
         '''
             replace the conv2 with Depth-aware Conv
+
+            1x1 -> 3x3 -> 1x1
         '''
         # self.conv1 = DepthConv(inplanes, planes, kernel_size=1, bias=False)
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
@@ -366,9 +368,10 @@ class ResNet_depthaware(Backbone):
         layers.append(block(self.inplanes, planes, stride, downsample, dilation=dilation))
         self.inplanes = planes * block.expansion
 
-        layers.append(block_depthaware(self.inplanes, planes)) # Conv3_1, Conv4_1, Conv5_1 are depth-aware
+        ''' add depth aware conv layers , # Conv3_1, Conv4_1, Conv5_1 are depth-aware, requrires inputs are [rgb, depth]'''
+        layers.append(block_depthaware(self.inplanes, planes))
         for i in range(2, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(self.inplanes, planes)) # normal conv layers, just requires RGB inputs
 
         return nn.Sequential(*layers)
 
@@ -377,9 +380,12 @@ class ResNet_depthaware(Backbone):
             outputs[name] = x
         return len(output_layers) == len(outputs)
 
-    def forward(self, x, depth, output_layers=None):
+    def forward(self, imgs, output_layers=None):
         """ Forward pass with input x. The output_layers specify the feature blocks which must be returned """
         outputs = OrderedDict()
+
+        x = imgs[..., :3]
+        d = imgs[..., 3:] # depth
 
         if output_layers is None:
             output_layers = self.output_layers
@@ -398,17 +404,17 @@ class ResNet_depthaware(Backbone):
         if self._add_output_and_check('layer1', x, outputs, output_layers):
             return outputs
 
-        x = self.layer2(x, depth)
+        x = self.layer2(x, d) # Conv3_1 is the depth-aware, how the inputs pass to each layer ??
 
         if self._add_output_and_check('layer2', x, outputs, output_layers):
             return outputs
 
-        x = self.layer3(x, depth)
+        x = self.layer3(x, d) # Conv4_1 is the depth-aware
 
         if self._add_output_and_check('layer3', x, outputs, output_layers):
             return outputs
 
-        x = self.layer4(x, depth)
+        x = self.layer4(x, d) # Conv5_1 is the depth-aware
 
         if self._add_output_and_check('layer4', x, outputs, output_layers):
             return outputs

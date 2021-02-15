@@ -33,20 +33,23 @@ def run(settings):
     # got10k_train = Got10k(settings.env.got10k_dir, split='vottrain')
     # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
     # coco_train = MSCOCOSeq(settings.env.coco_dir)
-    lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype='colormap_depth')
+    lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype='raw_depth')
 
     # Validation datasets
     # got10k_val = Got10k(settings.env.got10k_dir, split='votval')
-    cdtb_val = CDTB(settings.env.cdtb_dir, split='val', dtype='colormap_depth')
+    cdtb_val = CDTB(settings.env.cdtb_dir, split='val', dtype='raw_depth')
 
     # Data transform
     transform_joint = tfm.Transform(tfm.ToGrayscale(probability=0.05))
 
-    transform_train = tfm.Transform(tfm.ToTensorAndJitter(0.2),
-                                    tfm.Normalize(mean=settings.normalize_mean, std=settings.normalize_std))
+    # transform_train = tfm.Transform(tfm.ToTensorAndJitter(0.2),
+    #                                 tfm.Normalize(mean=settings.normalize_mean, std=settings.normalize_std))
+    transform_train = tfm.Transform(tfm.ToTensorAndJitter(0.2))
 
-    transform_val = tfm.Transform(tfm.ToTensor(),
-                                  tfm.Normalize(mean=settings.normalize_mean, std=settings.normalize_std))
+
+    # transform_val = tfm.Transform(tfm.ToTensor(),
+    #                               tfm.Normalize(mean=settings.normalize_mean, std=settings.normalize_std))
+    transform_val = tfm.Transform(tfm.ToTensor())
 
     # The tracking pairs processing module
     output_sigma = settings.output_sigma_factor / settings.search_area_factor
@@ -89,11 +92,11 @@ def run(settings):
                            shuffle=False, drop_last=True, epoch_interval=5, stack_dim=1)
 
     # Create network and actor
-    net = dimpnet.dimpnet50_depthaware(filter_size=settings.target_filter_sz, backbone_pretrained=True, optim_iter=5,
-                                       clf_feat_norm=True, clf_feat_blocks=0, final_conv=True, out_feature_dim=512,
-                                       optim_init_step=0.9, optim_init_reg=0.1,
-                                       init_gauss_sigma=output_sigma * settings.feature_sz, num_dist_bins=100,
-                                       bin_displacement=0.1, mask_init_factor=3.0, target_mask_act='sigmoid', score_act='relu')
+    net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=True, optim_iter=5,
+                            clf_feat_norm=True, clf_feat_blocks=0, final_conv=True, out_feature_dim=512,
+                            optim_init_step=0.9, optim_init_reg=0.1,
+                            init_gauss_sigma=output_sigma * settings.feature_sz, num_dist_bins=100,
+                            bin_displacement=0.1, mask_init_factor=3.0, target_mask_act='sigmoid', score_act='relu')
 
     # Wrap the network for multi GPU training
     if settings.multi_gpu:

@@ -1,14 +1,22 @@
 class EnvironmentSettings:
     def __init__(self):
         # self.workspace_dir = '/home/yan/Projects/pytracking/ltr/train_atom/'    # Base directory for saving network checkpoints.
-        self.workspace_dir = '/home/yans/pytracking-models/ltr/'
+
+        self.workspace_dir = '/home/yan/Data2/pytracking-models/ltr/'
         self.tensorboard_dir = self.workspace_dir + '/tensorboard/'    # Directory for tensorboard files.
         self.pretrained_networks = self.workspace_dir + '/pretrained_networks/'
-        self.lasot_dir = '/home/yans/Datasets/LaSOTBenchmark/'
-        self.lasotdepth_dir = '/home/yans/Datasets/EstimatedDepth/LaSOT/'
-        self.got10k_dir = '/home/yans/Datasets/Got10k/train/'
-        self.trackingnet_dir = '/home/yans/Datasets/TrackingNet/'
-        self.coco_dir = '/home/yans/Datasets/COCO/'
+
+        root_path = '/home/yan/Data4/Datasets/'
+        self.lasot_dir = root_path + 'LaSOTBenchmark/'
+        self.got10k_dir = root_path + 'Got10k/train/'
+        self.trackingnet_dir = root_path + 'TrackingNet/'
+        self.coco_dir = root_path + 'COCO/'
+
+        self.lasotdepth_dir = root_path + 'EstimatedDepth/LaSOT/'
+        self.got10kdepth_dir = root_path + 'EstimatedDepth/Got10k_densedepth/train/'
+        self.trackingnetdepth_dir = root_path + 'EstimatedDepth/TrackingNet_densedepth/'
+        self.cocodepth_dir = root_path + 'EstimatedDepth/COCO_densedepth/'
+        
         self.lvis_dir = ''
         self.sbd_dir = ''
         self.imagenet_dir = ''
@@ -18,4 +26,4 @@ class EnvironmentSettings:
         self.msra10k_dir = ''
         self.davis_dir = ''
         self.youtubevos_dir = ''
-        self.cdtb_dir = '/home/yans/Datasets/CDTB/'
+        self.cdtb_dir = root_path + 'CDTB/'

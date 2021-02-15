@@ -40,7 +40,7 @@ class Lasot_depth(BaseVideoDataset):
 
             rgb_root - path to the lasot rgb dataset
             root     - path to the lasot depth dataset.
-            dtype    - colormap or depth,
+            dtype    - colormap or depth,, colormap + depth
                         if colormap, it returns the colormap by cv2,
                         if depth, it returns [depth, depth, depth]
         """
@@ -157,12 +157,30 @@ class Lasot_depth(BaseVideoDataset):
         '''
         img_path = self._get_frame_path(seq_path, frame_id)
         dp = cv2.imread(img_path, -1)
-        dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
-        dp = np.asarray(dp, dtype=np.uint8)
+
         if self.dtype == 'colormap':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
-        else:
+        elif self.dtype == 'colormap_depth':
+            '''
+            Colormap + depth
+            '''
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+
+            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            r, g, b = cv2.split(colormap)
+            img = cv2.merge((r, g, b, dp))
+        elif self.dtype == 'raw_depth':
+            imag = cv2.merge((dp, dp, dp))
+        elif self.dtype == 'normalized_depth':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
+        else:
+            print('no such dtype ... : %s'%self.dtype)
+            img = None
         return img
 
     def _get_class(self, seq_path):
