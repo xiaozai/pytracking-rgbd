@@ -14,11 +14,7 @@ dataset_dict = dict(
     tpl_nootb=DatasetInfo(module=pt % "tpl", class_name="TPLDataset", kwargs=dict(exclude_otb=True)),
     vot=DatasetInfo(module=pt % "vot", class_name="VOTDataset", kwargs=dict()),
     # vot2019=DatasetInfo(module=pt % "vot2019", class_name="VOT2019Dataset", kwargs=dict()),
-
-    # CDTB , only RGB images
-    cdtb_color=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='color')),
-    cdtb_depth=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='depth')),
-    cdtb_colormap=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='colormap', depth_threshold=10000)),
+    cdtb=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='color')),
 
     trackingnet=DatasetInfo(module=pt % "trackingnet", class_name="TrackingNetDataset", kwargs=dict()),
     got10k_test=DatasetInfo(module=pt % "got10k", class_name="GOT10KDataset", kwargs=dict(split='test')),
@@ -48,7 +44,7 @@ dataset_dict = dict(
 )
 
 
-def load_dataset(name: str):
+def load_dataset(name: str, dtype: str):
     """ Import and load a single dataset."""
     name = name.lower()
     dset_info = dataset_dict.get(name)
@@ -56,13 +52,16 @@ def load_dataset(name: str):
         raise ValueError('Unknown dataset \'%s\'' % name)
 
     m = importlib.import_module(dset_info.module)
+
+    if 'dtype' in dset_info.kwargs:
+        dset_info.kwargs['dtype'] = dtype
     dataset = getattr(m, dset_info.class_name)(**dset_info.kwargs)  # Call the constructor
     return dataset.get_sequence_list()
 
 
-def get_dataset(*args):
+def get_dataset(dtype,*args):
     """ Get a single or set of datasets."""
     dset = SequenceList()
     for name in args:
-        dset.extend(load_dataset(name))
+        dset.extend(load_dataset(name, dtype))
     return dset

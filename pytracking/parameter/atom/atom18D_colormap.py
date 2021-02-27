@@ -96,7 +96,7 @@ def parameters():
 
     # Setup the feature extractor (which includes the IoUNet)
     deep_fparams = FeatureParams(feature_params=[deep_params])
-    deep_feat = deep.ATOMResNet18(net_path='atom_default.pth', output_layers=['layer3'], fparams=deep_fparams,
+    deep_feat = deep.ATOMResNet18(net_path='/home/yan/Data2/pytracking-models/ltr/checkpoints/ltr/bbreg/atom18D_colormap/atom18D_colormap.pth.tar', output_layers=['layer3'], fparams=deep_fparams,
                                   normalize_power=2)
     params.features = MultiResolutionExtractor([deep_feat])
 

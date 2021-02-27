@@ -21,13 +21,6 @@ def _save_tracker_output(seq: Sequence, tracker: Tracker, output: dict, run_id=N
 
     segmentation_path = os.path.join(tracker.segmentation_dir, seq.name)
 
-    if not os.path.exists(tracker.scoremap_dir):
-        os.makedirs(tracker.scoremap_dir)
-
-    scoremap_path = os.path.join(tracker.scoremap_dir, seq.name)
-    if not os.path.exists(scoremap_path):
-        os.makedirs(scoremap_path)
-
     frame_names = [os.path.splitext(os.path.basename(f))[0] for f in seq.frames]
 
     def save_bb(file, data):
@@ -67,7 +60,7 @@ def _save_tracker_output(seq: Sequence, tracker: Tracker, output: dict, run_id=N
                     if run_id:
                         bbox_file = '{}/{}_{}_{:03}.txt'.format(base_results_path, seq.name, obj_id,run_id)
                     else:
-                        bbox_file = '{}/{}_{}.txt'.format(base_results_path, seq.name, obj_id)
+                        bbox_file = '{}/{}_{}_001.txt'.format(base_results_path, seq.name, obj_id)
                     save_bb(bbox_file, d)
             else:
                 # Single-object mode
@@ -75,7 +68,7 @@ def _save_tracker_output(seq: Sequence, tracker: Tracker, output: dict, run_id=N
                 if run_id:
                     bbox_file = '{}/{}_{:03}.txt'.format(base_results_path, seq.name, run_id)
                 else:
-                    bbox_file = '{}/{}.txt'.format(base_results_path, seq.name)
+                    bbox_file = '{}/{}_001.txt'.format(base_results_path, seq.name)
                 save_bb(bbox_file, data)
 
         elif key == 'time':
@@ -85,16 +78,16 @@ def _save_tracker_output(seq: Sequence, tracker: Tracker, output: dict, run_id=N
                 for obj_id, d in data_dict.items():
                     # timings_file = '{}_{}_time.txt'.format(base_results_path, obj_id)
                     if run_id:
-                        timings_file = '{}/{}_{}_{:03}_time.txt'.format(base_results_path, seq.name, obj_id, run_id)
+                        timings_file = '{}/{}_{}_{:03}_time.value'.format(base_results_path, seq.name, obj_id, run_id)
                     else:
-                        timings_file = '{}/{}_{}_time.txt'.format(base_results_path, seq.name, obj_id)
+                        timings_file = '{}/{}_{}_001_time.value'.format(base_results_path, seq.name, obj_id)
                     save_time(timings_file, d)
             else:
                 # timings_file = '{}_time.txt'.format(base_results_path)
                 if run_id:
-                    timings_file = '{}/{}_{:03}_time.txt'.format(base_results_path, seq.name, run_id)
+                    timings_file = '{}/{}_{:03}_time.value'.format(base_results_path, seq.name, run_id)
                 else:
-                    timings_file = '{}/{}_time.txt'.format(base_results_path, seq.name)
+                    timings_file = '{}/{}_001_time.value'.format(base_results_path, seq.name)
                 save_time(timings_file, data)
 
         elif key == 'confidence':
@@ -106,14 +99,14 @@ def _save_tracker_output(seq: Sequence, tracker: Tracker, output: dict, run_id=N
                     if run_id:
                         confidence_file = '{}/{}_{}_{:03}_confidence.value'.format(base_results_path, seq.name, obj_id, run_id)
                     else:
-                        confidence_file = '{}/{}_{}_confidence.value'.format(base_results_path, seq.name, obj_id)
+                        confidence_file = '{}/{}_{}_001_confidence.value'.format(base_results_path, seq.name, obj_id)
                     save_time(confidence_file, d)
             else:
                 # confidence_file = '{}_confidence.txt'.format(base_results_path)
                 if run_id:
                     confidence_file = '{}/{}_{:03}_confidence.value'.format(base_results_path, seq.name, run_id)
                 else:
-                    confidence_file = '{}/{}_confidence.value'.format(base_results_path, seq.name)
+                    confidence_file = '{}/{}_001_confidence.value'.format(base_results_path, seq.name)
                 save_time(confidence_file, data)
 
         elif key == 'segmentation':
@@ -123,38 +116,24 @@ def _save_tracker_output(seq: Sequence, tracker: Tracker, output: dict, run_id=N
             for frame_name, frame_seg in zip(frame_names, data):
                 imwrite_indexed(os.path.join(segmentation_path, '{}.png'.format(frame_name)), frame_seg)
 
-        # elif key == 'score_map':
-        #     # print(len(data),len(frame_names))
-        #     assert len(frame_names) == len(data)
-        #     if not os.path.exists(scoremap_path):
-        #         os.makedirs(scoremap_path)
-        #     for frame_name, frame_score in zip(frame_names, data):
-        #         # imwrite_indexed(os.path.join(scoremap_path, '{}.png'.format(frame_name)), frame_score)
-        #         # print(frame_score.shape)
-        #         # frame_score = cv2.applyColorMap(np.asarray(frame_score*255, dtype=np.uint8), cv2.COLORMAP_JET)
-        #         # cv2.imwrite(os.path.join(scoremap_path, '{}.png'.format(frame_name)), frame_score)
-        #         plt.imshow(frame_score)
-        #         plt.savefig(os.path.join(scoremap_path, '{}.png'.format(frame_name)))
-        #         plt.close()
-
 def run_sequence(seq: Sequence, tracker: Tracker, debug=False, visdom_info=None, run_id=None):
     """Runs a tracker on a sequence."""
 
     def _results_exist():
         if seq.object_ids is None:
             if run_id is None:
-                bbox_file = '{}/{}/{}.txt'.format(tracker.results_dir, seq.name, seq.name)
+                bbox_file = '{}/{}/{}_001.txt'.format(tracker.results_dir, seq.name, seq.name)
             else:
                 bbox_file = '{}/{}/{}_{:03}.txt'.format(tracker.results_dir, seq.name, seq.name, run_id)
             return os.path.isfile(bbox_file)
         else:
-            # Song changes the output path, for each sequences
             if run_id is None:
-                bbox_files = ['{}/{}/{}_{}.txt'.format(tracker.results_dir, seq.name, seq.name, obj_id) for obj_id in seq.object_ids]
+                bbox_files = ['{}/{}/{}_{}_001.txt'.format(tracker.results_dir, seq.name, seq.name, obj_id) for obj_id in seq.object_ids]
             else:
                 bbox_files = ['{}/{}/{}_{}_{:03}.txt'.format(tracker.results_dir, seq.name, seq.name, obj_id, run_id) for obj_id in seq.object_ids]
             missing = [not os.path.isfile(f) for f in bbox_files]
             return sum(missing) == 0
+
             # bbox_file = '{}/{}/{}_{:03}.txt'.format(tracker.results_dir, seq.name, seq.name, run_id)
             # return os.path.isfile(bbox_file)
 

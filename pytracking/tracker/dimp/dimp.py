@@ -171,7 +171,7 @@ class DiMP(BaseTracker):
         else:
             output_state = new_state.tolist()
 
-        out = {'target_bbox': output_state}
+        out = {'target_bbox': output_state, 'confidence': max_score}
         return out
 
 

@@ -30,6 +30,13 @@ def get_layered_image_by_depth(depth_image, target_depth, dtype='centered_colorm
         layer = cv2.normalize(layer, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         layer = np.asarray(layer, dtype=np.uint8)
         layer = cv2.applyColorMap(layer, cv2.COLORMAP_JET)
+    elif dtype == 'centered_normalized_depth':
+        layer = cv2.normalize(layer, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        layer = np.asarray(layer, dtype=np.uint8)
+        layer = cv2.merge((layer, layer, layer))
+    elif dtype == 'centered_raw_depth':
+        layer = np.asarray(layer)
+        layer = np.stack((layer, layer, layer), axis=2)
 
     return layer
 

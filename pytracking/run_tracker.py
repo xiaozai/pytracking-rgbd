@@ -11,7 +11,7 @@ from pytracking.evaluation.running import run_dataset
 from pytracking.evaluation import Tracker
 
 
-def run_tracker(tracker_name, tracker_param, run_id=None, dataset_name='otb', sequence=None, debug=0, threads=0,
+def run_tracker(tracker_name, tracker_param, run_id=None, dataset_name='cdtb', dtype='rgb', sequence=None, debug=0, threads=0,
                 visdom_info=None):
     """Run tracker on sequence or dataset.
     args:
@@ -26,7 +26,7 @@ def run_tracker(tracker_name, tracker_param, run_id=None, dataset_name='otb', se
     """
 
     visdom_info = {} if visdom_info is None else visdom_info
-    dataset = get_dataset(dataset_name)
+    dataset = get_dataset(dtype, dataset_name)
 
     if sequence is not None:
         dataset = [dataset[sequence]]
@@ -42,6 +42,7 @@ def main():
     parser.add_argument('tracker_param', type=str, help='Name of parameter file.')
     parser.add_argument('--runid', type=int, default=None, help='The run id.')
     parser.add_argument('--dataset_name', type=str, default='otb', help='Name of dataset (otb, nfs, uav, tpl, vot, tn, gott, gotv, lasot).')
+    parser.add_argument('--input_dtype', type=str, default='colormap', help='[colormap, raw depth, normalized_depth, ....]')
     parser.add_argument('--sequence', type=str, default=None, help='Sequence number or name.')
     parser.add_argument('--debug', type=int, default=0, help='Debug level.')
     parser.add_argument('--threads', type=int, default=0, help='Number of threads.')
@@ -56,7 +57,7 @@ def main():
     except:
         seq_name = args.sequence
 
-    run_tracker(args.tracker_name, args.tracker_param, args.runid, args.dataset_name, seq_name, args.debug,
+    run_tracker(args.tracker_name, args.tracker_param, args.runid, args.dataset_name, args.input_dtype, seq_name, args.debug,
                 args.threads, {'use_visdom': args.use_visdom, 'server': args.visdom_server, 'port': args.visdom_port})
 
 

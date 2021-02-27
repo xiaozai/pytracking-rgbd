@@ -6,12 +6,12 @@ class CDTBDDataset(BaseDataset):
     """
     CDTB, RGB dataset, Depth dataset, Colormap dataset, RGB+depth
     """
-    def __init__(self, dtype='colormap', depth_threshold=None):
+    def __init__(self, dtype='colormap'):
         super().__init__()
         self.base_path = self.env_settings.cdtb_path
         self.sequence_list = self._get_sequence_list()
         self.dtype = dtype
-        self.depth_threshold = depth_threshold
+
     def get_sequence_list(self):
         return SequenceList([self._construct_sequence(s) for s in self.sequence_list])
 
@@ -35,8 +35,10 @@ class CDTBDDataset(BaseDataset):
 
         end_frame = ground_truth_rect.shape[0]
 
-        if self.dtype == 'colormap':
+        if self.dtype in ['colormap', 'normalized_depth', 'raw_depth', 'centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
             group = 'depth'
+        elif self.dtype == 'color':
+            group = self.dtype
         else:
             group = self.dtype
 
@@ -64,7 +66,8 @@ class CDTBDDataset(BaseDataset):
             y2 = np.amax(gt_y_all, 1).reshape(-1,1)
 
             ground_truth_rect = np.concatenate((x1, y1, x2-x1, y2-y1), 1)
-        return Sequence(sequence_name, frames, 'cdtb', ground_truth_rect, dtype=self.dtype, depth_threshold=self.depth_threshold)
+
+        return Sequence(sequence_name, frames, 'cdtb', ground_truth_rect, dtype=self.dtype)
 
     def __len__(self):
         return len(self.sequence_list)
