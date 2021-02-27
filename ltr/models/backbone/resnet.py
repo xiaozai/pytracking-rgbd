@@ -4,9 +4,9 @@ from collections import OrderedDict
 import torch.utils.model_zoo as model_zoo
 from torchvision.models.resnet import model_urls
 from .base import Backbone
-from ltr.external.depthconv.functions import depth_conv
-from ltr.external.depthconv.modules import DepthConv
-from ltr.external.depthavgpooling.modules import Depthavgpooling
+# from ltr.external.depthconv.functions import depth_conv
+# from ltr.external.depthconv.modules import DepthConv
+# from ltr.external.depthavgpooling.modules import Depthavgpooling
 
 def conv3x3(in_planes, out_planes, stride=1, dilation=1):
     """3x3 convolution with padding"""

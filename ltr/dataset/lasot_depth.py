@@ -11,6 +11,8 @@ from ltr.data.image_loader import jpeg4py_loader
 from ltr.admin.environment import env_settings
 import cv2
 
+from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
+
 class Lasot_depth(BaseVideoDataset):
     """ LaSOT dataset.
 
@@ -26,7 +28,7 @@ class Lasot_depth(BaseVideoDataset):
 
     """
 
-    def __init__(self, root=None, rgb_root=None, dtype='colormap', image_loader=jpeg4py_loader, vid_ids=None): #  split=None, data_fraction=None):
+    def __init__(self, root=None, dtype='colormap', image_loader=jpeg4py_loader, vid_ids=None): #  split=None, data_fraction=None):
         """
         args:
 
@@ -38,15 +40,12 @@ class Lasot_depth(BaseVideoDataset):
             #         vid_ids or split option can be used at a time.
             # data_fraction - Fraction of dataset to be used. The complete dataset is used by default
 
-            rgb_root - path to the lasot rgb dataset
             root     - path to the lasot depth dataset.
             dtype    - colormap or depth,, colormap + depth
                         if colormap, it returns the colormap by cv2,
                         if depth, it returns [depth, depth, depth]
         """
         root = env_settings().lasotdepth_dir if root is None else root
-        rgb_root = env_settings().lasot_dir if rgb_root is None else rgb_root
-        self.rgb_root = rgb_root
         super().__init__('LaSOTDepth', root, image_loader)
 
         self.dtype = dtype                                                      # colormap or depth
@@ -123,23 +122,22 @@ class Lasot_depth(BaseVideoDataset):
         '''
         Return :
                 - Depth path
-                - RGB path (original LaSOT path)
         '''
         seq_name = self.sequence_list[seq_id]
         class_name = seq_name.split('-')[0]
         vid_id = seq_name.split('-')[1]
-        return os.path.join(self.root, class_name + '-' + vid_id), os.path.join(self.rgb_root, class_name + '-' + vid_id)
+        return os.path.join(self.root, class_name + '-' + vid_id)
 
     def get_sequence_info(self, seq_id):
-        depth_path, rgb_path = self._get_sequence_path(seq_id)
-        bbox = self._read_bb_anno(rgb_path)
+        depth_path = self._get_sequence_path(seq_id)
+        bbox = self._read_bb_anno(depth_path)
 
         '''
         if the box is too small, it will be ignored
         '''
         # valid = (bbox[:, 2] > 0) & (bbox[:, 3] > 0)
         valid = (bbox[:, 2] > 5.0) & (bbox[:, 3] > 5.0)
-        visible = self._read_target_visible(rgb_path) & valid.byte()
+        visible = self._read_target_visible(depth_path) & valid.byte()
 
         return {'bbox': bbox, 'valid': valid, 'visible': visible}
 
@@ -149,7 +147,7 @@ class Lasot_depth(BaseVideoDataset):
         '''
         return os.path.join(seq_path, 'depth', '{:08}.png'.format(frame_id+1)) # frames start from 1
 
-    def _get_frame(self, seq_path, frame_id):
+    def _get_frame(self, seq_path, frame_id, bbox=None):
         '''
         Return :
             - colormap from depth image
@@ -158,11 +156,18 @@ class Lasot_depth(BaseVideoDataset):
         img_path = self._get_frame_path(seq_path, frame_id)
         dp = cv2.imread(img_path, -1)
 
-        if self.dtype == 'colormap':
+        if self.dtype == 'centered_colormap':
+            if bbox is None:
+                print('Error !!! require bbox for centered_colormap')
+                return
+            target_depth = get_target_depth(dp, bbox)
+            img = get_layered_image_by_depth(dp, target_depth, dtype=self.dtype)
+
+        elif self.dtype == 'colormap':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
-        elif self.dtype == 'colormap_depth':
+        elif self.dtype == 'colormap_normalizeddepth':
             '''
             Colormap + depth
             '''
@@ -172,15 +177,20 @@ class Lasot_depth(BaseVideoDataset):
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
+
         elif self.dtype == 'raw_depth':
-            imag = cv2.merge((dp, dp, dp))
+            # No normalization here !!!!
+            image = cv2.merge((dp, dp, dp))
+
         elif self.dtype == 'normalized_depth':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
+
         else:
             print('no such dtype ... : %s'%self.dtype)
             img = None
+
         return img
 
     def _get_class(self, seq_path):
@@ -188,23 +198,25 @@ class Lasot_depth(BaseVideoDataset):
         return raw_class
 
     def get_class_name(self, seq_id):
-        depth_path, rgb_path = self._get_sequence_path(seq_id)
-        obj_class = self._get_class(rgb_path)
+        depth_path = self._get_sequence_path(seq_id)
+        obj_class = self._get_class(depth_path)
 
         return obj_class
 
     def get_frames(self, seq_id, frame_ids, anno=None):
-        depth_path, rgb_path = self._get_sequence_path(seq_id)
+        depth_path = self._get_sequence_path(seq_id)
 
-        obj_class = self._get_class(rgb_path)
-        frame_list = [self._get_frame(depth_path, f_id) for f_id in frame_ids]
+        obj_class = self._get_class(depth_path)
+
 
         if anno is None:
             anno = self.get_sequence_info(seq_id)
 
         anno_frames = {}
         for key, value in anno.items():
-            anno_frames[key] = [value[f_id, ...].clone() for f_id in frame_ids]
+            anno_frames[key] = [value[f_id, ...].clone() for ii, f_id in enumerate(frame_ids)]
+
+        frame_list = [self._get_frame(depth_path, f_id, bbox=anno_frames['bbox'][ii, ...]) for ii, f_id in enumerate(frame_ids)]
 
         object_meta = OrderedDict({'object_class_name': obj_class,
                                    'motion_class': None,

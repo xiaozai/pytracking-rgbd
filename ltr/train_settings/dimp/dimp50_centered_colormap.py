@@ -32,7 +32,7 @@ def run(settings):
     # lasot_train = Lasot(settings.env.lasot_dir, split='train')
     # got10k_train = Got10k(settings.env.got10k_dir, split='vottrain')
     # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
-    coco_train = MSCOCOSeq_depth(settings.env.coco_dir, dtype='centered_colormap')
+    coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype='centered_colormap')
     lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, dtype='centered_colormap')
 
     # Validation datasets
@@ -110,11 +110,12 @@ def run(settings):
                             {'params': actor.net.classifier.filter_optimizer.parameters(), 'lr': 5e-4},
                             {'params': actor.net.classifier.feature_extractor.parameters(), 'lr': 5e-5},
                             {'params': actor.net.bb_regressor.parameters()},
-                            {'params': actor.net.feature_extractor.parameters(), 'lr': 2e-5}],
+                            {'params': actor.net.feature_extractor.parameters(), 'lr': 2e-5}
+                           ],
                            lr=2e-4)
 
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.2)
 
     trainer = LTRTrainer(actor, [loader_train, loader_val], optimizer, settings, lr_scheduler)
 
-    trainer.train(50, load_latest=True, fail_safe=True)
+    trainer.train(500, load_latest=True, fail_safe=True)

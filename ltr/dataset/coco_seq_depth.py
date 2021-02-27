@@ -8,6 +8,7 @@ from collections import OrderedDict
 from ltr.admin.environment import env_settings
 import numpy as np
 import cv2
+from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
 
 class MSCOCOSeq_depth(BaseVideoDataset):
     """ The COCO dataset. COCO is an image dataset. Thus, we treat each image as a sequence of length 1.
@@ -127,23 +128,39 @@ class MSCOCOSeq_depth(BaseVideoDataset):
 
         return anno
 
-    def _get_frames(self, seq_id, depth_threshold=None):
+    def _get_frames(self, seq_id, depth_threshold=None, bbox=None):
+
         rgb_path = self.coco_set.loadImgs([self.coco_set.anns[self.sequence_list[seq_id]]['image_id']])[0]['file_name']
         depth_path = rgb_path[:-4] + '.png'
-        # img = self.image_loader(os.path.join(self.img_pth, path))
+
         dp = cv2.imread(os.path.join(self.img_pth, path), -1)
-        dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
-        dp = np.asarray(dp, dtype=np.uint8)
-        if self.dtype == 'colormap':
+
+
+
+        if self.dtype == 'centered_colormap':
+            if bbox is None:
+                print('Error !!!  centered_colormap requires BBox ')
+                return
+            # bbox is repeated
+            target_depth = get_target_depth(dp, bbox[0, :])
+            img = get_layered_image_by_depth(dp, target_depth, dtype=self.dtype)
+
+        elif self.dtype == 'colormap':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
         elif self.dtype == 'colormap_depth':
             '''
             Colormap + depth
             '''
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
         else:
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
         return img
 
@@ -171,9 +188,6 @@ class MSCOCOSeq_depth(BaseVideoDataset):
     def get_frames(self, seq_id=None, frame_ids=None, anno=None):
         # COCO is an image dataset. Thus we replicate the image denoted by seq_id len(frame_ids) times, and return a
         # list containing these replicated images.
-        frame = self._get_frames(seq_id)
-
-        frame_list = [frame.copy() for _ in frame_ids]
 
         if anno is None:
             anno = self.get_sequence_info(seq_id)
@@ -181,6 +195,10 @@ class MSCOCOSeq_depth(BaseVideoDataset):
         anno_frames = {}
         for key, value in anno.items():
             anno_frames[key] = [value[0, ...] for _ in frame_ids]
+
+        frame = self._get_frames(seq_id, bbox=anno_frames['bbox'])
+
+        frame_list = [frame.copy() for _ in frame_ids]
 
         object_meta = self.get_meta_info(seq_id)
 

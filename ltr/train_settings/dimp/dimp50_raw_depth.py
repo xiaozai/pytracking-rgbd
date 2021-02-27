@@ -16,8 +16,8 @@ def run(settings):
     settings.num_workers = 8
     settings.multi_gpu = False
     settings.print_interval = 1
-    settings.normalize_mean = [0.485, 0.456, 0.406]
-    settings.normalize_std = [0.229, 0.224, 0.225]
+    # settings.normalize_mean = [0.485, 0.456, 0.406]
+    # settings.normalize_std = [0.229, 0.224, 0.225]
     settings.search_area_factor = 5.0
     settings.output_sigma_factor = 1/4
     settings.target_filter_sz = 4
@@ -40,7 +40,7 @@ def run(settings):
     cdtb_val = CDTB(settings.env.cdtb_dir, split='val', dtype='raw_depth')
 
     # Data transform
-    transform_joint = tfm.Transform(tfm.ToGrayscale(probability=0.05))
+    transform_joint = tfm.Transform(tfm.ToGrayscale(probability=0.05)) # Song : How to ToGrayscale for raw depth ??
 
     # transform_train = tfm.Transform(tfm.ToTensorAndJitter(0.2),
     #                                 tfm.Normalize(mean=settings.normalize_mean, std=settings.normalize_std))
@@ -91,8 +91,8 @@ def run(settings):
     loader_val = LTRLoader('val', dataset_val, training=False, batch_size=settings.batch_size, num_workers=settings.num_workers,
                            shuffle=False, drop_last=True, epoch_interval=5, stack_dim=1)
 
-    # Create network and actor
-    net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=True, optim_iter=5,
+    # Create network and actor # Song : !!!!!! we train the Network with the backbone from scratch !!!!!!!
+    net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=False, optim_iter=5,
                             clf_feat_norm=True, clf_feat_blocks=0, final_conv=True, out_feature_dim=512,
                             optim_init_step=0.9, optim_init_reg=0.1,
                             init_gauss_sigma=output_sigma * settings.feature_sz, num_dist_bins=100,
@@ -108,7 +108,7 @@ def run(settings):
 
     actor = actors.DiMPActor(net=net, objective=objective, loss_weight=loss_weight)
 
-    # Optimizer
+    # Optimizer # Including the backbone
     optimizer = optim.Adam([{'params': actor.net.classifier.filter_initializer.parameters(), 'lr': 5e-5},
                             {'params': actor.net.classifier.filter_optimizer.parameters(), 'lr': 5e-4},
                             {'params': actor.net.classifier.feature_extractor.parameters(), 'lr': 5e-5},
@@ -120,4 +120,4 @@ def run(settings):
 
     trainer = LTRTrainer(actor, [loader_train, loader_val], optimizer, settings, lr_scheduler)
 
-    trainer.train(50, load_latest=True, fail_safe=True)
+    trainer.train(150, load_latest=True, fail_safe=True)

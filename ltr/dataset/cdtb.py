@@ -94,7 +94,7 @@ class CDTB(BaseVideoDataset):
 
     def _get_sequence_list(self):
         '''
-            CDTB provide 80 sequences 
+            CDTB provide 80 sequences
         '''
         # with open(os.path.join(self.root, 'list.txt')) as f:
         #     dir_list = list(csv.reader(f))
@@ -141,10 +141,8 @@ class CDTB(BaseVideoDataset):
         return {'bbox': bbox, 'valid': valid, 'visible': visible}
 
     def _get_frame_path(self, seq_path, frame_id):
-        if self.dtype == 'depth':
+        if self.dtype in ['raw_depth', 'normalized_depth', 'colormap']:
             frame_path = os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))  # frames start from 1
-        elif self.dtype == 'colormap':
-            frame_path = os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))
         elif self.dtype == 'color':
             frame_path = os.path.join(seq_path, 'color/{:08}.jpg'.format(frame_id+1))
         elif self.dtype == 'rgbd':
@@ -162,13 +160,19 @@ class CDTB(BaseVideoDataset):
         if self.dtype == 'color':
             im = cv.imread(image_path)
             im = cv.cvtColor(im, cv.COLOR_BGR2RGB)
-        elif self.dtype == 'depth':
+
+        elif self.dtype == 'normalized_depth':
             im = cv.imread(image_path, -1)
             if depth_threshold is not None:
                 im[im>depth_threshold] = depth_threshold
             im = cv.normalize(im, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
             im = np.asarray(im, dtype=np.uint8)
             im = cv.merge((im, im, im))
+
+        elif self.dtype == 'raw_depth':
+            im = cv.imread(image_path, -1)
+            im = cv.merge((im, im, im))
+
         elif self.dtype == 'colormap':
             im = cv.imread(image_path, -1)
             if depth_threshold is not None:
@@ -176,6 +180,7 @@ class CDTB(BaseVideoDataset):
             im = cv.normalize(im, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
             im = np.asarray(im, dtype=np.uint8)
             im = cv.applyColorMap(im, cv.COLORMAP_JET)
+
         elif self.dtype == 'rgbd':
             color_img_path = image_path[0]
             depth_img_path = image_path[1]
@@ -190,6 +195,7 @@ class CDTB(BaseVideoDataset):
 
             r, g, b = cv.split(rgb)
             im = cv.merge((r, g, b, dp))
+
         return im
 
     # def get_class_name(self, seq_id):
