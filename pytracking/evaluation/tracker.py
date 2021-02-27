@@ -181,7 +181,11 @@ class Tracker:
                     output[key].append(val)
 
         # Initialize
-        image = self._read_image(seq.frames[0], dtype=seq.dtype)
+        if seq.dtype in ['centered_colormap', 'centered_raw_depth', 'centered_normalized_depth']:
+            bbox = init_info.get('init_bbox')
+        else:
+            bbox = None
+        image = self._read_image(seq.frames[0], dtype=seq.dtype, bbox=bbox)
 
         if tracker.params.visualization and self.visdom is None:
             self.visualize(image, init_info.get('init_bbox'))
@@ -193,6 +197,7 @@ class Tracker:
             out = {}
 
         prev_output = OrderedDict(out)
+        prev_output['target_bbox'] = init_info.get('init_bbox')
 
         init_default = {'target_bbox': init_info.get('init_bbox'),
                         'time': time.time() - start_time,
@@ -212,7 +217,12 @@ class Tracker:
                 else:
                     time.sleep(0.1)
 
-            image = self._read_image(frame_path, dtype=seq.dtype)
+            if seq.dtype in ['centered_raw_depth', 'centered_colormap', 'centered_normalized_depth']:
+                bbox = prev_output['target_bbox']
+            else:
+                bbox = None
+
+            image = self._read_image(frame_path, dtype=seq.dtype, bbox=bbox)
 
             start_time = time.time()
 
