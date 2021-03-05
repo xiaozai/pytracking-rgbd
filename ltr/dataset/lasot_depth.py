@@ -164,9 +164,11 @@ class Lasot_depth(BaseVideoDataset):
             img = get_layered_image_by_depth(dp, target_depth, dtype=self.dtype)
 
         elif self.dtype == 'colormap':
+
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+
         elif self.dtype == 'colormap_normalizeddepth':
             '''
             Colormap + depth
@@ -216,7 +218,7 @@ class Lasot_depth(BaseVideoDataset):
         for key, value in anno.items():
             anno_frames[key] = [value[f_id, ...].clone() for ii, f_id in enumerate(frame_ids)]
 
-        frame_list = [self._get_frame(depth_path, f_id, bbox=anno_frames['bbox'][ii, ...]) for ii, f_id in enumerate(frame_ids)]
+        frame_list = [self._get_frame(depth_path, f_id, bbox=anno_frames['bbox'][ii]) for ii, f_id in enumerate(frame_ids)]
 
         object_meta = OrderedDict({'object_class_name': obj_class,
                                    'motion_class': None,

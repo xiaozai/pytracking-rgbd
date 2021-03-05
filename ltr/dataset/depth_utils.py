@@ -142,5 +142,5 @@ def get_target_depth(depth, target_box):
     else:
         target_depth = median_depth
 
-    print('Traget depth : ', target_depth)
+    # print('Traget depth : ', target_depth)
     return target_depth

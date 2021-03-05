@@ -133,7 +133,7 @@ class MSCOCOSeq_depth(BaseVideoDataset):
         rgb_path = self.coco_set.loadImgs([self.coco_set.anns[self.sequence_list[seq_id]]['image_id']])[0]['file_name']
         depth_path = rgb_path[:-4] + '.png'
 
-        dp = cv2.imread(os.path.join(self.img_pth, path), -1)
+        dp = cv2.imread(os.path.join(self.img_pth, depth_path), -1)
 
 
 
@@ -142,13 +142,14 @@ class MSCOCOSeq_depth(BaseVideoDataset):
                 print('Error !!!  centered_colormap requires BBox ')
                 return
             # bbox is repeated
-            target_depth = get_target_depth(dp, bbox[0, :])
+            target_depth = get_target_depth(dp, bbox[0])
             img = get_layered_image_by_depth(dp, target_depth, dtype=self.dtype)
 
         elif self.dtype == 'colormap':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+
         elif self.dtype == 'colormap_depth':
             '''
             Colormap + depth

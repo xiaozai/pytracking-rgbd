@@ -15,6 +15,6 @@ module load all/libjpeg-turbo/2.0.0-GCCcore-7.3.0
 
 source activate pytracking
 
-python run_training.py dimp depth_dimp50_dcolormap
+python run_training.py dimp dimp50D_colormap
 
 conda deactivate
