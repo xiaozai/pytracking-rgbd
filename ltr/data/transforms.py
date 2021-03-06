@@ -230,7 +230,16 @@ class Normalize(TransformBase):
         self.inplace = inplace
 
     def transform_image(self, image):
-        return tvisf.normalize(image, self.mean, self.std, self.inplace)
+        dims = list(image.size())
+
+        if dims[0] == 6:
+            rgb = image[:3, :, :]
+            depth = image[3:, :, :]
+
+            rgb = tvisf.normalize(rgb, self.mean, self.std, self.inplace)
+            return torch.cat((rgb, depth), 2)
+        else:
+            return tvisf.normalize(image, self.mean, self.std, self.inplace)
 
 
 class ToGrayscale(TransformBase):
@@ -247,8 +256,17 @@ class ToGrayscale(TransformBase):
         if do_grayscale:
             if torch.is_tensor(image):
                 raise NotImplementedError('Implement torch variant.')
-            img_gray = cv.cvtColor(image, cv.COLOR_RGB2GRAY)
-            return np.stack([img_gray, img_gray, img_gray], axis=2)
+
+            dims = list(image.shape)
+            if dims[2] == 6:
+                rgb = image[:, :, :3]
+                depth = image[:, :, 3:]
+                img_gray = cv.cvtColor(rgb, cv.COLOR_RGB2GRAY)
+                img_gray = np.stack([img_gray, img_gray, img_gray], axis=2)
+                return np.stack([img_gray, depth], axix=2)
+            else:
+                img_gray = cv.cvtColor(image, cv.COLOR_RGB2GRAY)
+                return np.stack([img_gray, img_gray, img_gray], axis=2)
             # return np.repeat(np.sum(img * self.color_weights, axis=2, keepdims=True).astype(np.uint8), 3, axis=2)
         return image
 

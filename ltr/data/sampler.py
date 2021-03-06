@@ -23,7 +23,7 @@ class TrackingSampler(torch.utils.data.Dataset):
     """
 
     def __init__(self, datasets, p_datasets, samples_per_epoch, max_gap,
-                 num_test_frames, num_train_frames=1, processing=no_processing, frame_sample_mode='causal', use_depth=False):
+                 num_test_frames, num_train_frames=1, processing=no_processing, frame_sample_mode='causal'):
         """
         args:
             datasets - List of datasets to be used for training
@@ -53,7 +53,7 @@ class TrackingSampler(torch.utils.data.Dataset):
         self.num_train_frames = num_train_frames
         self.processing = processing
         self.frame_sample_mode = frame_sample_mode
-        self.use_depth = use_depth
+
 
     def __len__(self):
         return self.samples_per_epoch
@@ -158,30 +158,16 @@ class TrackingSampler(torch.utils.data.Dataset):
             train_frame_ids = [1] * self.num_train_frames
             test_frame_ids = [1] * self.num_test_frames
 
-        if self.use_depth:
-            ''' Added by Song : for rgb + depth '''
-            train_frames, train_depths, train_anno, meta_obj_train = dataset.get_frames(seq_id, train_frame_ids, seq_info_dict)
-            test_frames, test_depths, test_anno, meta_obj_test = dataset.get_frames(seq_id, test_frame_ids, seq_info_dict)
+        train_frames, train_anno, meta_obj_train = dataset.get_frames(seq_id, train_frame_ids, seq_info_dict)
+        test_frames, test_anno, meta_obj_test = dataset.get_frames(seq_id, test_frame_ids, seq_info_dict)
 
-            data = TensorDict({'train_images': train_frames,
-                               'train_depths': train_depths,
-                               'train_anno': train_anno['bbox'],
-                               'test_images': test_frames,
-                               'test_depths': test_depths,
-                               'test_anno': test_anno['bbox'],
-                               'dataset': dataset.get_name(),
-                               'test_class': meta_obj_test.get('object_class_name')})
-        else:
-            train_frames, train_anno, meta_obj_train = dataset.get_frames(seq_id, train_frame_ids, seq_info_dict)
-            test_frames, test_anno, meta_obj_test = dataset.get_frames(seq_id, test_frame_ids, seq_info_dict)
+        data = TensorDict({'train_images': train_frames,
+                           'train_anno': train_anno['bbox'],
+                           'test_images': test_frames,
+                           'test_anno': test_anno['bbox'],
+                           'dataset': dataset.get_name(),
+                           'test_class': meta_obj_test.get('object_class_name')})
 
-            data = TensorDict({'train_images': train_frames,
-                               'train_anno': train_anno['bbox'],
-                               'test_images': test_frames,
-                               'test_anno': test_anno['bbox'],
-                               'dataset': dataset.get_name(),
-                               'test_class': meta_obj_test.get('object_class_name')})
-                               
         return self.processing(data)
 
 

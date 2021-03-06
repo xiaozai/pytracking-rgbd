@@ -48,6 +48,7 @@ class DepthTrack(BaseVideoDataset):
         root = env_settings().depthtrack_dir if root is None else root
         super().__init__('DepthTrack', root, image_loader)
 
+        self.root = root
         self.dtype = dtype                                                      # colormap or depth
         self.sequence_list = self._build_sequence_list()
 
@@ -59,9 +60,10 @@ class DepthTrack(BaseVideoDataset):
         '''
             We only have  the train set, no test set, here we use all 646 videos for training
         '''
-        ltr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
-        file_path = os.path.join(ltr_path, 'data_specs', 'lasot_depth.txt')
-        sequence_list = pandas.read_csv(file_path, header=None, squeeze=True).values.tolist()
+        # ltr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+        # file_path = os.path.join(ltr_path, 'data_specs', 'lasot_depth.txt')
+        # sequence_list = pandas.read_csv(file_path, header=None, squeeze=True).values.tolist()
+        sequence_list = os.listdir(self.root)
 
         return sequence_list
 
@@ -125,9 +127,9 @@ class DepthTrack(BaseVideoDataset):
                 - Depth path
         '''
         seq_name = self.sequence_list[seq_id]
-        class_name = seq_name.split('-')[0]
-        vid_id = seq_name.split('-')[1]
-        return os.path.join(self.root, class_name + '-' + vid_id)
+        # class_name = seq_name.split('-')[0]
+        # vid_id = seq_name.split('-')[1]
+        return os.path.join(self.root, seq_name)
 
     def get_sequence_info(self, seq_id):
         depth_path = self._get_sequence_path(seq_id)
@@ -206,7 +208,7 @@ class DepthTrack(BaseVideoDataset):
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
-            
+
         elif self.dtype == 'rgbd':
             r, g, b = cv2.split(rgb)
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
