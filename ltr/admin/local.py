@@ -19,3 +19,7 @@ class EnvironmentSettings:
         self.cdtb_dir = '/home/sgn/Data1/yan/Datasets/CDTB/'
         self.lasotdepth_dir = '/home/sgn/Data1/yan/Datasets/EstimatedDepth/LaSOT/'
         self.cocodepth_dir = '/home/sgn/Data1/yan/Datasets/EstimatedDepth/COCO_densedepth/'
+
+        self.depthtrack_dir = '/home/yan/Data4/Datasets/DeTrack-v1/train_annotated/'
+        self.depthtrack_horizontal_dir = '/home/yan/Data4/Datasets/DeTrack-v1/train_horizontal_flip/'
+        self.depthtrack_vertical_dir = '/home/yan/Data4/Datasets/DeTrack-v1/train_vertical_flip/'

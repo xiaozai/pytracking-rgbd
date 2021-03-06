@@ -141,62 +141,83 @@ class CDTB(BaseVideoDataset):
         return {'bbox': bbox, 'valid': valid, 'visible': visible}
 
     def _get_frame_path(self, seq_path, frame_id):
-        if self.dtype in ['raw_depth', 'normalized_depth', 'colormap']:
-            frame_path = os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))  # frames start from 1
-        elif self.dtype == 'color':
-            frame_path = os.path.join(seq_path, 'color/{:08}.jpg'.format(frame_id+1))
-        elif self.dtype == 'rgbd':
-            color_frame_path = os.path.join(seq_path, 'color/{:08}.jpg'.format(frame_id+1))
-            depth_frame_path = os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))
-            frame_path = [color_frame_path, depth_frame_path]
-        else:
-            frame_path = os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))
-        return frame_path
+        # if self.dtype in ['raw_depth', 'normalized_depth', 'colormap']:
+        #     frame_path = os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))  # frames start from 1
+        # elif self.dtype == 'color':
+        #     frame_path = os.path.join(seq_path, 'color/{:08}.jpg'.format(frame_id+1))
+        # elif self.dtype == 'rgbd':
+        #     color_frame_path = os.path.join(seq_path, 'color/{:08}.jpg'.format(frame_id+1))
+        #     depth_frame_path = os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))
+        #     frame_path = [color_frame_path, depth_frame_path]
+        # else:
+        #     frame_path = os.path.join(seq_path, 'depth/{:08}.png'.format(frame_id+1))
+
+        return os.path.join(seq_path, 'color', '{:08}.jpg'.format(frame_id+1)) , os.path.join(seq_path, 'depth', '{:08}.png'.format(frame_id+1))
 
     def _get_frame(self, seq_path, frame_id, depth_threshold=None):
-        # return self.image_loader(self._get_frame_path(seq_path, frame_id))
-        image_path = self._get_frame_path(seq_path, frame_id)
+
+        color_path, depth_path = self._get_frame_path(seq_path, frame_id)
+
+        rgb = cv2.imread(color_path)
+        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+        dp = cv2.imread(depth_path, -1)
 
         if self.dtype == 'color':
-            im = cv.imread(image_path)
-            im = cv.cvtColor(im, cv.COLOR_BGR2RGB)
+            # img = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+            img = rgb
 
-        elif self.dtype == 'normalized_depth':
-            im = cv.imread(image_path, -1)
-            if depth_threshold is not None:
-                im[im>depth_threshold] = depth_threshold
-            im = cv.normalize(im, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-            im = np.asarray(im, dtype=np.uint8)
-            im = cv.merge((im, im, im))
+        elif self.dtype == 'rgbcolormap':
 
-        elif self.dtype == 'raw_depth':
-            im = cv.imread(image_path, -1)
-            im = cv.merge((im, im, im))
+            colormap = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            colormap = np.asarray(colormap, dtype=np.uint8)
+            colormap = cv2.applyColorMap(colormap, cv2.COLORMAP_JET)
+
+            img = cv2.merge((rgb, colormap))
+
+        elif self.dtype == 'centered_colormap':
+            if bbox is None:
+                print('Error !!! require bbox for centered_colormap')
+                return
+            target_depth = get_target_depth(dp, bbox)
+            img = get_layered_image_by_depth(dp, target_depth, dtype=self.dtype)
 
         elif self.dtype == 'colormap':
-            im = cv.imread(image_path, -1)
-            if depth_threshold is not None:
-                im[im>depth_threshold] = depth_threshold
-            im = cv.normalize(im, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-            im = np.asarray(im, dtype=np.uint8)
-            im = cv.applyColorMap(im, cv.COLORMAP_JET)
 
-        elif self.dtype == 'rgbd':
-            color_img_path = image_path[0]
-            depth_img_path = image_path[1]
-            dp = cv.imread(depth_img_path, -1)
-            if depth_threshold is not None:
-                dp[dp > depth_threshold] = depth_threshold
-            dp = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+            img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+
+        elif self.dtype == 'colormap_normalizeddepth':
+            '''
+            Colormap + depth
+            '''
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
 
-            rgb = cv.imread(color_img_path)
-            rgb = cv.cvtColor(rgb, cv.COLOR_BGR2RGB)
+            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            r, g, b = cv2.split(colormap)
+            img = cv2.merge((r, g, b, dp))
 
-            r, g, b = cv.split(rgb)
-            im = cv.merge((r, g, b, dp))
+        elif self.dtype == 'raw_depth':
+            # No normalization here !!!!
+            image = cv2.merge((dp, dp, dp))
 
-        return im
+        elif self.dtype == 'normalized_depth':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+            img = cv2.merge((dp, dp, dp)) # H * W * 3
+
+        elif self.dtype == 'rgbd':
+            r, g, b = cv2.split(rgb)
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+            img = cv2.merge((r, g, b, dp))
+            
+        else:
+            print('no such dtype ... : %s'%self.dtype)
+            img = None
+
+        return img
 
     # def get_class_name(self, seq_id):
     #     obj_meta = self.sequence_meta_info[self.sequence_list[seq_id]]

@@ -17,3 +17,4 @@ from .synthetic_video_blend import SyntheticVideoBlend
 from .lasot_depth import Lasot_depth
 from .coco_seq_depth import MSCOCOSeq_depth
 from .cdtb import CDTB
+from .depthtrack import DepthTrack
