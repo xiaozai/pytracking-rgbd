@@ -526,7 +526,13 @@ def sample_target_adaptive(im, target_bb, search_area_factor, output_sz, mode: s
         mask_crop = mask[y1 + y1_pad:y2 - y2_pad, x1 + x1_pad:x2 - x2_pad]
 
     # Pad
-    im_crop_padded = cv.copyMakeBorder(im_crop, y1_pad, y2_pad, x1_pad, x2_pad, cv.BORDER_REPLICATE)
+    dim = list(im_crop.shape)
+    if dim[2] == 6:
+        color_crop_padded = cv.copyMakeBorder(im_crop[:, :, :3], y1_pad, y2_pad, x1_pad, x2_pad, cv.BORDER_REPLICATE)
+        depth_crop_padded = cv.copyMakeBorder(im_crop[:, :, 3:], y1_pad, y2_pad, x1_pad, x2_pad, cv.BORDER_REPLICATE)
+        im_crop_padded = cv.merge((color_crop_padded, depth_crop_padded))
+    else:
+        im_crop_padded = cv.copyMakeBorder(im_crop, y1_pad, y2_pad, x1_pad, x2_pad, cv.BORDER_REPLICATE)
 
     if mask is not None:
         mask_crop_padded = F.pad(mask_crop, pad=(x1_pad, x2_pad, y1_pad, y2_pad), mode='constant', value=0)

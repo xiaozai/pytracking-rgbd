@@ -237,7 +237,8 @@ class Normalize(TransformBase):
             depth = image[3:, :, :]
 
             rgb = tvisf.normalize(rgb, self.mean, self.std, self.inplace)
-            return torch.cat((rgb, depth), 2)
+
+            return  torch.cat((rgb, depth), 0)
         else:
             return tvisf.normalize(image, self.mean, self.std, self.inplace)
 
@@ -258,12 +259,13 @@ class ToGrayscale(TransformBase):
                 raise NotImplementedError('Implement torch variant.')
 
             dims = list(image.shape)
+        
             if dims[2] == 6:
                 rgb = image[:, :, :3]
                 depth = image[:, :, 3:]
                 img_gray = cv.cvtColor(rgb, cv.COLOR_RGB2GRAY)
                 img_gray = np.stack([img_gray, img_gray, img_gray], axis=2)
-                return np.stack([img_gray, depth], axix=2)
+                return  np.concatenate([img_gray, depth], axis=2)
             else:
                 img_gray = cv.cvtColor(image, cv.COLOR_RGB2GRAY)
                 return np.stack([img_gray, img_gray, img_gray], axis=2)

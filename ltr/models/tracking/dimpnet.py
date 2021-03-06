@@ -46,8 +46,9 @@ class DiMPnet_rgbcolormap_postmerge(nn.Module):
 
         assert train_imgs.dim() == 5 and test_imgs.dim() == 5, 'Expect 5 dimensional inputs'
 
+
         train_depths = train_imgs[:, :, 3:, :, :]
-        test_depth = test_imgs[:, :, 3:, :, :]
+        test_depths = test_imgs[:, :, 3:, :, :]
 
         train_imgs = train_imgs[:, :, :3, :, :]
         test_imgs = test_imgs[:, :, :3, :, :]
@@ -68,7 +69,7 @@ class DiMPnet_rgbcolormap_postmerge(nn.Module):
 
         # Merge RGB and depth features
         train_feat_clf = torch.mul(train_feat_clf, train_depth_feat_clf)
-        test_feat_clf = torch.mul(test_featr_clf, test_depth_feat_clf)
+        test_feat_clf = torch.mul(test_feat_clf, test_depth_feat_clf)
 
         # Run classifier module
         target_scores = self.classifier(train_feat_clf, test_feat_clf, train_bb, *args, **kwargs)
@@ -146,7 +147,7 @@ class DiMPnet_rgbcolormap_premerge(nn.Module):
         assert train_imgs.dim() == 5 and test_imgs.dim() == 5, 'Expect 5 dimensional inputs'
 
         train_depths = train_imgs[:, :, 3:, :, :]
-        test_depth = test_imgs[:, :, 3:, :, :]
+        test_depths = test_imgs[:, :, 3:, :, :]
 
         train_imgs = train_imgs[:, :, :3, :, :]
         test_imgs = test_imgs[:, :, :3, :, :]
