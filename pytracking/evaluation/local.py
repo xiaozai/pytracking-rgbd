@@ -24,5 +24,5 @@ def local_env_settings():
     settings.vot_path = '/home/yan/Data2/vot-workspace/sequences'
     settings.cdtb_path = '/home/yan/Data2/vot-workspace/sequences'
     settings.youtubevos_dir = ''
-
+    settings.depthtrack_path = '/home/yan/Data2/vot-workspace-DepthTrack/sequences/'
     return settings

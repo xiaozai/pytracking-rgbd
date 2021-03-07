@@ -212,7 +212,7 @@ class CDTB(BaseVideoDataset):
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((r, g, b, dp))
-            
+
         else:
             print('no such dtype ... : %s'%self.dtype)
             img = None
