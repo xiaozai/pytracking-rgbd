@@ -158,21 +158,21 @@ class CDTB(BaseVideoDataset):
 
         color_path, depth_path = self._get_frame_path(seq_path, frame_id)
 
-        rgb = cv2.imread(color_path)
-        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
-        dp = cv2.imread(depth_path, -1)
+        rgb = cv.imread(color_path)
+        rgb = cv.cvtColor(rgb, cv.COLOR_BGR2RGB)
+        dp = cv.imread(depth_path, -1)
 
         if self.dtype == 'color':
-            # img = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+            # img = cv.cvtColor(rgb, cv.COLOR_BGR2RGB)
             img = rgb
 
         elif self.dtype == 'rgbcolormap':
 
-            colormap = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            colormap = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
             colormap = np.asarray(colormap, dtype=np.uint8)
-            colormap = cv2.applyColorMap(colormap, cv2.COLORMAP_JET)
+            colormap = cv.applyColorMap(colormap, cv.COLORMAP_JET)
 
-            img = cv2.merge((rgb, colormap))
+            img = cv.merge((rgb, colormap))
 
         elif self.dtype == 'centered_colormap':
             if bbox is None:
@@ -183,36 +183,36 @@ class CDTB(BaseVideoDataset):
 
         elif self.dtype == 'colormap':
 
-            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
-            img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            img = cv.applyColorMap(dp, cv.COLORMAP_JET)
 
         elif self.dtype == 'colormap_normalizeddepth':
             '''
             Colormap + depth
             '''
-            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
 
-            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
-            r, g, b = cv2.split(colormap)
-            img = cv2.merge((r, g, b, dp))
+            colormap = cv.applyColorMap(dp, cv.COLORMAP_JET)
+            r, g, b = cv.split(colormap)
+            img = cv.merge((r, g, b, dp))
 
         elif self.dtype == 'raw_depth':
             # No normalization here !!!!
-            image = cv2.merge((dp, dp, dp))
+            image = cv.merge((dp, dp, dp))
 
         elif self.dtype == 'normalized_depth':
-            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
-            img = cv2.merge((dp, dp, dp)) # H * W * 3
+            img = cv.merge((dp, dp, dp)) # H * W * 3
 
         elif self.dtype == 'rgbd':
-            r, g, b = cv2.split(rgb)
-            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            r, g, b = cv.split(rgb)
+            dp = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
-            img = cv2.merge((r, g, b, dp))
-            
+            img = cv.merge((r, g, b, dp))
+
         else:
             print('no such dtype ... : %s'%self.dtype)
             img = None
