@@ -108,7 +108,12 @@ class DiMP(BaseTracker):
                                                                       self.target_scale * self.params.scale_factors,
                                                                       self.img_sample_sz)
         # Extract classification features
-        test_x = self.get_classification_features(backbone_feat)
+        if type(backbone_feat) is dict:
+            test_x_color = self.get_classification_features(backbone_feat['color'])
+            test_x_depth = self.get_classification_features(backbone_feat['depth'])
+            test_x = torch.mul(test_x_color, test_x_depth)
+        else:
+            test_x = self.get_classification_features(backbone_feat)
 
         # Location of sample
         sample_pos, sample_scales = self.get_sample_location(sample_coords)
@@ -314,7 +319,9 @@ class DiMP(BaseTracker):
             elif dims[1] == 6:
                 backbone_feat_color = self.net.extract_backbone(im_patches[:, :3, :, :])
                 backbone_feat_depth = self.net.extract_backbone(im_patches[:, 3:, :, :])
-                backbone_feat = torch.mul(backbone_feat_color, backbone_feat_depth)
+                # print(back_feat_color)
+                # backbone_feat = torch.mul(backbone_feat_color, backbone_feat_depth
+                backbone_feat = {'color': backbone_feat_color, 'depth': backbone_feat_depth}
             else:
                 print('backbone_feat in dimp line 318 is wrong!!!!!!!!!!!!!!!!!!!!!!!')
 
@@ -402,13 +409,15 @@ class DiMP(BaseTracker):
 
         # Extract initial backbone features
         with torch.no_grad():
-            dims = list(im_pathes.size())
+            dims = list(im_patches.size())
             if dims[1] == 3:
                 init_backbone_feat = self.net.extract_backbone(im_patches)
             elif dims[1] == 6:
                 init_backbone_feat_color = self.net.extract_backbone(im_patches[:, :3, :, :])
                 init_backbone_feat_depth = self.net.extract_backbone(im_patches[:, 3:, :, :])
-                init_backbone_feat = torch.mul(init_backbone_feat_color, init_backbone_feat_depth)
+                # print(init_backbone_feat_color.keys())
+                # init_backbone_feat = torch.mul(init_backbone_feat_color, init_backbone_feat_depth)
+                init_backbone_feat = {'color': init_backbone_feat_color, 'depth': init_backbone_feat_depth}
 
         return init_backbone_feat
 
@@ -538,7 +547,12 @@ class DiMP(BaseTracker):
         target_boxes = torch.cat(target_boxes.view(1,4), 0).to(self.params.device)
 
         # Get iou features
-        iou_backbone_feat = self.get_iou_backbone_features(backbone_feat)
+        if type(backbone_feat) is dict:
+            iou_backbone_feat_color = self.get_iou_backbone_features(backbone_feat['color'])
+            iou_backbone_feat_depth = self.get_iou_backbone_features(backbone_feat['depth'])
+            iou_backbone_feat = [torch.mul(iou_feat_color, iou_feat_depth) for iou_feat_color, iou_feat_depth in zip(iou_backbone_feat_color, iou_backbone_feat_depth)]
+        else:
+            iou_backbone_feat = self.get_iou_backbone_features(backbone_feat)
 
         # Remove other augmentations such as rotation
         iou_backbone_feat = TensorList([x[:target_boxes.shape[0],...] for x in iou_backbone_feat])
@@ -551,7 +565,12 @@ class DiMP(BaseTracker):
 
     def init_classifier(self, init_backbone_feat):
         # Get classification features
-        x = self.get_classification_features(init_backbone_feat)
+        if type(init_backbone_feat) is dict:
+            x_color = self.get_classification_features(init_backbone_feat['color'])
+            x_depth = self.get_classification_features(init_backbone_feat['depth'])
+            x = torch.mul(x_color, x_depth)
+        else:
+            x = self.get_classification_features(init_backbone_feat)
 
         # Overwrite some parameters in the classifier. (These are not generally changed)
         self._overwrite_classifier_params(feature_dim=x.shape[-3])
@@ -673,7 +692,12 @@ class DiMP(BaseTracker):
         init_box = self.get_iounet_box(self.pos, self.target_sz, sample_pos, sample_scale)
 
         # Extract features from the relevant scale
-        iou_features = self.get_iou_features(backbone_feat)
+        if type(backbone_feat) is dict:
+            iou_features_color = self.get_iou_features(backbone_feat['color'])
+            iou_features_depth = self.get_iou_features(backbone_feat['depth'])
+            iou_features = [torch.mul(ifc, ifd) for ifc, ifd in zip(iou_features_color, iou_features_depth)]
+        else:
+            iou_features = self.get_iou_features(backbone_feat)
         iou_features = TensorList([x[scale_ind:scale_ind+1,...] for x in iou_features])
 
         # Generate random initial boxes
@@ -810,7 +834,14 @@ class DiMP(BaseTracker):
         init_box = self.get_iounet_box(self.pos, self.target_sz, sample_pos, sample_scale)
 
         # Extract features from the relevant scale
-        iou_features = self.get_iou_features(backbone_feat)
+        if type(backbone_feat) is dict:
+            iou_features_color = self.get_iou_features(backbone_feat['color'])
+            iou_features_depth = self.get_iou_features(backbone_feat['depth'])
+            iou_features = [torch.mul(ifc, ifd) for ifc, ifd in zip(iou_features_color, iou_features_depth)]
+        else:
+            iou_features = self.get_iou_features(backbone_feat)
+
+        # iou_features = self.get_iou_features(backbone_feat)
         iou_features = TensorList([x[scale_ind:scale_ind+1,...] for x in iou_features])
 
         # Generate random initial boxes

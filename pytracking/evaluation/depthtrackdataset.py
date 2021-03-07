@@ -42,14 +42,18 @@ class DepthTrackDataset(BaseDataset):
         else:
             group = self.dtype
 
-        if self.dtype == 'rgbd':
+        if self.dtype in ['rgbd', 'rgbcolormap']:
             depth_frames = ['{base_path}/{sequence_path}/depth/{frame:0{nz}}.png'.format(base_path=self.base_path,
                             sequence_path=sequence_path, frame=frame_num, nz=nz)
                             for frame_num in range(start_frame, end_frame+1)]
             color_frames = ['{base_path}/{sequence_path}/color/{frame:0{nz}}.jpg'.format(base_path=self.base_path,
                             sequence_path=sequence_path, frame=frame_num, nz=nz)
                             for frame_num in range(start_frame, end_frame+1)]
-            frames = {'color': color_frames, 'depth': depth_frames}
+            # frames = {'color': color_frames, 'depth': depth_frames}
+            frames = []
+            for c_path, d_path in zip(color_frames, depth_frames):
+                frames.append({'color': c_path, 'depth': d_path})
+
         else:
             frames = ['{base_path}/{sequence_path}/{group}/{frame:0{nz}}.{ext}'.format(base_path=self.base_path,
                       sequence_path=sequence_path, group=group, frame=frame_num, nz=nz, ext=ext)

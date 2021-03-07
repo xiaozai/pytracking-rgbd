@@ -68,8 +68,10 @@ class DiMPnet_rgbcolormap_postmerge(nn.Module):
         test_depth_feat_clf = self.get_backbone_clf_feat(test_depth_feat)
 
         # Merge RGB and depth features
-        train_feat_clf = torch.mul(train_feat_clf, train_depth_feat_clf)
-        test_feat_clf = torch.mul(test_feat_clf, test_depth_feat_clf)
+        # train_feat_clf = torch.mul(train_feat_clf, train_depth_feat_clf)
+        # test_feat_clf = torch.mul(test_feat_clf, test_depth_feat_clf)
+        train_feat_clf = torch.maximum(train_feat_clf, train_depth_feat_clf)
+        test_feat_clf = torch.maximum(test_feat_clf, test_depth_feat_clf)
 
         # Run classifier module
         target_scores = self.classifier(train_feat_clf, test_feat_clf, train_bb, *args, **kwargs)
