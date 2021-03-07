@@ -185,6 +185,7 @@ class Tracker:
             bbox = init_info.get('init_bbox')
         else:
             bbox = None
+
         image = self._read_image(seq.frames[0], dtype=seq.dtype, bbox=bbox)
 
         if tracker.params.visualization and self.visdom is None:
@@ -681,6 +682,11 @@ class Tracker:
 
 
     def visualize(self, image, state, segmentation=None):
+        dims = image.shape
+        if dims[-1] == 6:
+            color = image[:, :, :3]
+            depth = image[:, :, 3:]
+            image = cv.hstack((color, depth))
         self.ax.cla()
         self.ax.imshow(image)
         if segmentation is not None:
@@ -726,6 +732,14 @@ class Tracker:
         if dtype == 'color':
             im = cv.imread(image_file)
             return cv.cvtColor(im, cv.COLOR_BGR2RGB)
+        elif dtype == 'rgbcolormap':
+             color_image = cv.imread(seq.frames['color'])
+             depth_image = cv.imread(seq.frames['depth'], -1)
+             depth_image = cv.normalize(depth_image, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+             depth_image = np.asarray(depth_image, dtype=np.uint8)
+             depth_image = cv.applyColorMap(depth_image, cv.COLORMAP_JET)
+             img = cv.merge((color_image, depth_image))
+
         elif dtype in ['colormap', 'normalized_depth', 'raw_depth', 'centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
             depth_image_file = image_file
             dp = cv.imread(depth_image_file, -1)

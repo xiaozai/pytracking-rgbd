@@ -211,7 +211,11 @@ class CDTB(BaseVideoDataset):
             r, g, b = cv.split(rgb)
             dp = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
+<<<<<<< HEAD
             img = cv.merge((r, g, b, dp))
+=======
+            img = cv2.merge((r, g, b, dp))
+>>>>>>> 96c8ba0d7e03438f27aada46156c273f4e1a9e4f
 
         else:
             print('no such dtype ... : %s'%self.dtype)

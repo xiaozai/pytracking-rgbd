@@ -38,7 +38,7 @@ class DiMP(BaseTracker):
         tic = time.time()
 
         # Convert image
-        im = numpy_to_torch(image)
+        im = numpy_to_torch(image) # HxWx6 -> 6 * H * W
 
         # Get target position and size
         state = info['init_bbox']
@@ -98,6 +98,7 @@ class DiMP(BaseTracker):
         self.debug_info['frame_num'] = self.frame_num
 
         # Convert image
+
         im = numpy_to_torch(image)
 
         # ------- LOCALIZATION ------- #
@@ -307,7 +308,16 @@ class DiMP(BaseTracker):
                                                            mode=self.params.get('border_mode', 'replicate'),
                                                            max_scale_change=self.params.get('patch_max_scale_change', None))
         with torch.no_grad():
-            backbone_feat = self.net.extract_backbone(im_patches)
+            dims = list(im_patches.size())
+            if dims[1] == 3:
+                backbone_feat = self.net.extract_backbone(im_patches)
+            elif dims[1] == 6:
+                backbone_feat_color = self.net.extract_backbone(im_patches[:, :3, :, :])
+                backbone_feat_depth = self.net.extract_backbone(im_patches[:, 3:, :, :])
+                backbone_feat = torch.mul(backbone_feat_color, backbone_feat_depth)
+            else:
+                print('backbone_feat in dimp line 318 is wrong!!!!!!!!!!!!!!!!!!!!!!!')
+
         return backbone_feat, patch_coords, im_patches
 
     def get_classification_features(self, backbone_feat):
@@ -387,12 +397,18 @@ class DiMP(BaseTracker):
         if 'rotate' in augs:
             self.transforms.extend([augmentation.Rotate(angle, aug_output_sz, get_rand_shift()) for angle in augs['rotate']])
 
-        # Extract augmented image patches
+        # Extract augmented image patches, im : 1*6*H*W
         im_patches = sample_patch_transformed(im, self.init_sample_pos, self.init_sample_scale, aug_expansion_sz, self.transforms)
 
         # Extract initial backbone features
         with torch.no_grad():
-            init_backbone_feat = self.net.extract_backbone(im_patches)
+            dims = list(im_pathes.size())
+            if dims[1] == 3:
+                init_backbone_feat = self.net.extract_backbone(im_patches)
+            elif dims[1] == 6:
+                init_backbone_feat_color = self.net.extract_backbone(im_patches[:, :3, :, :])
+                init_backbone_feat_depth = self.net.extract_backbone(im_patches[:, 3:, :, :])
+                init_backbone_feat = torch.mul(init_backbone_feat_color, init_backbone_feat_depth)
 
         return init_backbone_feat
 

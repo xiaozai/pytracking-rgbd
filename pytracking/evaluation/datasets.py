@@ -15,6 +15,7 @@ dataset_dict = dict(
     vot=DatasetInfo(module=pt % "vot", class_name="VOTDataset", kwargs=dict()),
     # vot2019=DatasetInfo(module=pt % "vot2019", class_name="VOT2019Dataset", kwargs=dict()),
     cdtb=DatasetInfo(module=pt % "cdtb", class_name="CDTBDDataset", kwargs=dict(dtype='color')),
+    depthtrack=DatasetInfo(module=pt % "depthtrack", class_name="DepthTrackDataset", kwargs=dict(dtype='color')),
 
     trackingnet=DatasetInfo(module=pt % "trackingnet", class_name="TrackingNetDataset", kwargs=dict()),
     got10k_test=DatasetInfo(module=pt % "got10k", class_name="GOT10KDataset", kwargs=dict(split='test')),
