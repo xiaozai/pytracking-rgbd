@@ -175,7 +175,7 @@ class BaseTrainer:
         # Load network
         checkpoint_dict = loading.torch_load_legacy(checkpoint_path)
 
-        assert net_type == checkpoint_dict['net_type'], 'Network is not of correct type.'
+        # assert net_type == checkpoint_dict['net_type'], 'Network is not of correct type.'
 
         if fields is None:
             fields = checkpoint_dict.keys()
@@ -190,9 +190,19 @@ class BaseTrainer:
             if key in ignore_fields:
                 continue
             if key == 'net':
-                net.load_state_dict(checkpoint_dict[key])
+                # net.load_state_dict(checkpoint_dict[key])
+
+                # Song for merge layer
+                model_dict = net.state_dict()
+                pretrained_dict = {k: v for k, v in checkpoint_dict[key].items() if k in model_dict}
+                model_dict.update(pretrained_dict)
+                net.load_state_dict(model_dict)
+
             elif key == 'optimizer':
-                self.optimizer.load_state_dict(checkpoint_dict[key])
+                try:
+                    self.optimizer.load_state_dict(checkpoint_dict[key])
+                except:
+                    continue
             else:
                 setattr(self, key, checkpoint_dict[key])
 

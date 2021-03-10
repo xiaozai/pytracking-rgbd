@@ -20,7 +20,7 @@ class DiMPnet_rgbcolormap_postmerge(nn.Module):
         classification_layer:  Name of the backbone feature layer to use for classification.
         bb_regressor_layer:  Names of the backbone layers to use for bounding box regression."""
 
-    def __init__(self, feature_extractor, classifier, bb_regressor, classification_layer, bb_regressor_layer):
+    def __init__(self, feature_extractor, classifier, bb_regressor, classification_layer, bb_regressor_layer, merge_type='mean'):
         super().__init__()
 
         self.feature_extractor = feature_extractor
@@ -30,6 +30,10 @@ class DiMPnet_rgbcolormap_postmerge(nn.Module):
         self.bb_regressor_layer = bb_regressor_layer
         self.output_layers = sorted(list(set(self.classification_layer + self.bb_regressor_layer)))
 
+        self.merge_type = merge_type
+        if self.merge_type == 'conv':
+            self.merge_layer2 = nn.Conv2d(1024, 512, (1,1))
+            self.merge_layer3 = nn.Conv2d(2048, 1024, (1,1))
 
     def forward(self, train_imgs, test_imgs, train_bb, test_proposals, *args, **kwargs):
         """Runs the DiMP network the way it is applied during training.
@@ -46,32 +50,12 @@ class DiMPnet_rgbcolormap_postmerge(nn.Module):
 
         assert train_imgs.dim() == 5 and test_imgs.dim() == 5, 'Expect 5 dimensional inputs'
 
-
-        train_depths = train_imgs[:, :, 3:, :, :]
-        test_depths = test_imgs[:, :, 3:, :, :]
-
-        train_imgs = train_imgs[:, :, :3, :, :]
-        test_imgs = test_imgs[:, :, :3, :, :]
-
-        # Extract backbone features
         train_feat = self.extract_backbone_features(train_imgs.reshape(-1, *train_imgs.shape[-3:]))
         test_feat = self.extract_backbone_features(test_imgs.reshape(-1, *test_imgs.shape[-3:]))
-
-        train_depth_feat = self.extract_backbone_features(train_depths.reshape(-1, *train_depths.shape[-3:]))
-        test_depth_feat = self.extract_backbone_features(test_depths.reshape(-1, *test_depths.shape[-3:]))
 
         # Classification features
         train_feat_clf = self.get_backbone_clf_feat(train_feat)
         test_feat_clf = self.get_backbone_clf_feat(test_feat)
-
-        train_depth_feat_clf = self.get_backbone_clf_feat(train_depth_feat)
-        test_depth_feat_clf = self.get_backbone_clf_feat(test_depth_feat)
-
-        # Merge RGB and depth features
-        # train_feat_clf = torch.mul(train_feat_clf, train_depth_feat_clf)
-        # test_feat_clf = torch.mul(test_feat_clf, test_depth_feat_clf)
-        train_feat_clf = torch.maximum(train_feat_clf, train_depth_feat_clf)
-        test_feat_clf = torch.maximum(test_feat_clf, test_depth_feat_clf)
 
         # Run classifier module
         target_scores = self.classifier(train_feat_clf, test_feat_clf, train_bb, *args, **kwargs)
@@ -89,26 +73,67 @@ class DiMPnet_rgbcolormap_postmerge(nn.Module):
         feat = OrderedDict({l: backbone_feat[l] for l in self.classification_layer})
         if len(self.classification_layer) == 1:
             return feat[self.classification_layer[0]]
-        return feat
 
     def get_backbone_bbreg_feat(self, backbone_feat):
-        return [backbone_feat[l] for l in self.bb_regressor_layer]
+        return [backbone_feat[l] for l in self.bb_regressor_layer]              # Song : layer2 and layer 3
 
     def extract_classification_feat(self, backbone_feat):
         return self.classifier.extract_classification_feat(self.get_backbone_clf_feat(backbone_feat))
 
+    def merge(self, color_feat, depth_feat):
+
+        feat = {}
+
+        if self.merge_type == 'conv':
+            feat['layer2'] = self.merge_layer2(torch.cat((color_feat['layer2'], depth_feat['layer2']), 1))
+            feat['layer3'] = self.merge_layer3(torch.cat((color_feat['layer3'], depth_feat['layer3']), 1))
+
+        elif self.merge_type == 'max':
+            feat['layer2'] = torch.maximum(color_feat['layer2'], depth_feat['layer2'])
+            feat['layer3'] = torch.maximum(color_feat['layer3'], depth_feat['layer3'])
+
+        elif self.merge_type == 'mul':
+            feat['layer2'] = torch.mul(color_feat['layer2'], depth_feat['layer2'])
+            feat['layer3'] = torch.mul(color_feat['layer3'], depth_feat['layer3'])
+
+        elif self.merge_type == 'mean':
+            feat['layer2'] = 0.5 * (color_feat['layer2'] + depth_feat['layer2'])
+            feat['layer3'] = 0.5 * (color_feat['layer3'] + depth_feat['layer3'])
+
+        return feat
+
     def extract_backbone_features(self, im, layers=None):
         if layers is None:
             layers = self.output_layers
-        return self.feature_extractor(im, layers)
+
+        dims = im.shape
+        if dims[1] == 6:
+            color_feat = self.feature_extractor(im[:, :3, :, :], layers)
+            depth_feat = self.feature_extractor(im[:, 3:, :, :], layers)
+            return self.merge(color_feat, depth_feat)
+        else:
+            return self.feature_extractor(im, layers)
 
     def extract_features(self, im, layers=None):
+        '''Song not sure about this '''
+        print('Song in dimpnet.py extract_features')
+        dims = im.shape
         if layers is None:
             layers = self.bb_regressor_layer + ['classification']
         if 'classification' not in layers:
-            return self.feature_extractor(im, layers)
+            if dims[1] == 6:
+                color_feat = self.feature_extractor(im[:, :3, :, :], layers)
+                depth_feat = self.feature_extractor(im[:, 3:, :, :], layers)
+                return self.merge(color_feat, depth_feat)
+            else:
+                return self.feature_extractor(im, layers)
         backbone_layers = sorted(list(set([l for l in layers + self.classification_layer if l != 'classification'])))
-        all_feat = self.feature_extractor(im, backbone_layers)
+        if dims[1] == 6:
+            color_feat = self.feature_extractor(im[:, :3, :, :], layers)
+            depth_feat = self.feature_extractor(im[:, 3:, :, :], layers)
+            all_feat = self.merge(color_feat, depth_feat)
+        else:
+            all_feat = self.feature_extractor(im, backbone_layers)
         all_feat['classification'] = self.extract_classification_feat(all_feat)
         return OrderedDict({l: all_feat[l] for l in layers})
 
@@ -394,7 +419,8 @@ def dimpnet50_rgbcolormap_postmerge(filter_size=1, optim_iter=5, optim_init_step
               out_feature_dim=512, init_gauss_sigma=1.0, num_dist_bins=5, bin_displacement=1.0,
               mask_init_factor=4.0, iou_input_dim=(256, 256), iou_inter_dim=(256, 256),
               score_act='relu', act_param=None, target_mask_act='sigmoid',
-              detach_length=float('Inf'), frozen_backbone_layers=()):
+              detach_length=float('Inf'), frozen_backbone_layers=(),
+              merge_type='max'):
 
     # Backbone
     backbone_net = backbones.resnet50(pretrained=backbone_pretrained, frozen_layers=frozen_backbone_layers)
@@ -438,7 +464,8 @@ def dimpnet50_rgbcolormap_postmerge(filter_size=1, optim_iter=5, optim_init_step
 
     # DiMP network
     net = DiMPnet_rgbcolormap_postmerge(feature_extractor=backbone_net, classifier=classifier, bb_regressor=bb_regressor,
-                  classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'])
+                  classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'],
+                  merge_type=merge_type)
     return net
 
 

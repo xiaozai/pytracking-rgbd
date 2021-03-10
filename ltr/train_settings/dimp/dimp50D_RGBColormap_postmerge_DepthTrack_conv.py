@@ -102,7 +102,8 @@ def run(settings):
                                                   clf_feat_norm=True, clf_feat_blocks=0, final_conv=True, out_feature_dim=512,
                                                   optim_init_step=0.9, optim_init_reg=0.1,
                                                   init_gauss_sigma=output_sigma * settings.feature_sz, num_dist_bins=100,
-                                                  bin_displacement=0.1, mask_init_factor=3.0, target_mask_act='sigmoid', score_act='relu')
+                                                  bin_displacement=0.1, mask_init_factor=3.0, target_mask_act='sigmoid', score_act='relu',
+                                                  merge_type='conv')
 
     # Wrap the network for multi GPU training
     if settings.multi_gpu:
@@ -118,6 +119,8 @@ def run(settings):
     optimizer = optim.Adam([{'params': actor.net.classifier.filter_initializer.parameters(), 'lr': 5e-5},
                             {'params': actor.net.classifier.filter_optimizer.parameters(), 'lr': 5e-4},
                             {'params': actor.net.classifier.feature_extractor.parameters(), 'lr': 5e-5},
+                            {'params': actor.net.merge_layer2.parameters(), 'lr': 5e-5},
+                            {'params': actor.net.merge_layer3.parameters(), 'lr': 5e-5},
                             {'params': actor.net.bb_regressor.parameters()},
                             {'params': actor.net.feature_extractor.parameters(), 'lr': 2e-5}],
                            lr=2e-4)
@@ -126,4 +129,4 @@ def run(settings):
 
     trainer = LTRTrainer(actor, [loader_train, loader_val], optimizer, settings, lr_scheduler)
 
-    trainer.train(500, load_latest=True, fail_safe=True)
+    trainer.train(75, load_latest=True, fail_safe=True)

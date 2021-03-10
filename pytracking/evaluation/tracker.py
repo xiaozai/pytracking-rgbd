@@ -686,6 +686,7 @@ class Tracker:
 
         if dims[-1] == 6:
             color = image[:, :, :3]
+            color = cv.cvtColor(color, cv.COLOR_BGR2RGB)
             depth = image[:, :, 3:]
             image = cv.hconcat((color, depth))
             # image = color
