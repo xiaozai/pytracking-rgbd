@@ -23,7 +23,7 @@ def local_env_settings():
     settings.trackingnet_path = ''
     settings.uav_path = ''
     settings.vot_path = ''
-    settings.cdtb_path = ''
+    settings.cdtb_path = data_root + 'Datasets/CDTB/'
     settings.youtubevos_dir = ''
     settings.depthtrack_path = data_root + 'Datasets/DeTrack-v1/test/'
 

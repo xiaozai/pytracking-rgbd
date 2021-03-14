@@ -161,26 +161,46 @@ class Got10k_depth(BaseVideoDataset):
 
     def _get_frame_path(self, seq_path, frame_id):
         # return os.path.join(seq_path, '{:08}.jpg'.format(frame_id+1))    # frames start from 1
-        return os.path.join(seq_path, 'depth', '{:08}.png'.format(frame_id+1))    # frames start from 1
+        return os.path.join(seq_path, 'color', '{:08}.jpg'.format(frame_id+1)) , os.path.join(seq_path, 'depth', '{:08}.png'.format(frame_id+1))    # frames start from 1
 
     def _get_frame(self, seq_path, frame_id):
         # return self.image_loader(self._get_frame_path(seq_path, frame_id))
-        img_path = self._get_frame_path(seq_path, frame_id)
-        dp = cv2.imread(img_path, -1)
-        dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
-        dp = np.asarray(dp, dtype=np.uint8)
+        rgb_img_path, depth_img_path = self._get_frame_path(seq_path, frame_id)
+
+        rgb = cv2.imread(rgb_img_path)
+        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+
+        dp = cv2.imread(depth_img_path, -1)
+
 
         if self.dtype == 'colormap':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
         elif self.dtype == 'colormap_depth':
             '''
             Colormap + depth
             '''
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
-        else:
+
+        elif self.dtype == 'depth_gray':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
+
+        elif self.dtype == 'rgbcolormap':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            img = cv2.merge((rgb, colormap))
+
+        elif self.dtype == 'color':
+            img = rgb
+            
         return img
 
     def get_class_name(self, seq_id):

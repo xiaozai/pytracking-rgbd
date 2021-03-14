@@ -49,7 +49,7 @@ class MSCOCOSeq_depth(BaseVideoDataset):
         super().__init__('COCO_depth', root, image_loader)
 
         # self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))
-        self.img_pth = os.path.join(root, '{}{}/depth/'.format(split, version))
+        self.img_pth = os.path.join(root, '{}{}/'.format(split, version))
         self.anno_path = os.path.join(root, 'annotations/instances_{}{}.json'.format(split, version))
 
         self.dtype = dtype
@@ -131,11 +131,16 @@ class MSCOCOSeq_depth(BaseVideoDataset):
     def _get_frames(self, seq_id, depth_threshold=None, bbox=None):
 
         rgb_path = self.coco_set.loadImgs([self.coco_set.anns[self.sequence_list[seq_id]]['image_id']])[0]['file_name']
+
         depth_path = rgb_path[:-4] + '.png'
 
-        dp = cv2.imread(os.path.join(self.img_pth, depth_path), -1)
+        rgb = cv2.imread(os.path.join(self.img_pth, 'color', rgb_path))
+        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
 
+        dp = cv2.imread(os.path.join(self.img_pth, 'depth', depth_path), -1)
 
+        max_depth = min(np.max(dp), 10000)
+        dp[dp > max_depth] = max_depth
 
         if self.dtype == 'centered_colormap':
             if bbox is None:
@@ -159,10 +164,21 @@ class MSCOCOSeq_depth(BaseVideoDataset):
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
-        else:
+
+        elif self.dtype == 'depth_gray':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
+
+        elif self.dtype == 'color':
+            img = rgb
+
+        elif self.dtype == 'rgbcolormap':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            img = cv2.merge((rgb, colormap))
+
         return img
 
     def get_meta_info(self, seq_id):

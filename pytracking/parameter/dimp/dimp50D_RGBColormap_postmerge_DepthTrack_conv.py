@@ -62,7 +62,7 @@ def parameters():
 
     params.merge_type = 'conv'
 
-    params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/dimp50D_RGBColormap_postmerge_DepthTrack_conv/ep0060.pth.tar',
+    params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/dimp50D_RGBColormap_postmerge_DepthTrack_conv/ep0053.pth.tar',
                                  use_gpu=params.use_gpu)
 
     params.vot_anno_conversion_type = 'preserve_area'

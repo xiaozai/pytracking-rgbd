@@ -145,7 +145,7 @@ class Lasot_depth(BaseVideoDataset):
         '''
         return depth image path
         '''
-        return os.path.join(seq_path, 'depth', '{:08}.png'.format(frame_id+1)) # frames start from 1
+        return os.path.join(seq_path, 'img', '{:08}.jpg'.format(frame_id+1)), os.path.join(seq_path, 'depth', '{:08}.png'.format(frame_id+1)) # frames start from 1
 
     def _get_frame(self, seq_path, frame_id, bbox=None):
         '''
@@ -153,9 +153,15 @@ class Lasot_depth(BaseVideoDataset):
             - colormap from depth image
             - [depth, depth, depth]
         '''
-        img_path = self._get_frame_path(seq_path, frame_id)
-        dp = cv2.imread(img_path, -1)
+        rgb_img_path, depth_img_path = self._get_frame_path(seq_path, frame_id)
 
+        rgb = cv2.imread(rgb_img_path)
+        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+
+        dp = cv2.imread(depth_img_path, -1)
+        max_depth = min(np.max(dp), 10000)
+        dp[dp > max_depth] = max_depth
+        
         if self.dtype == 'centered_colormap':
             if bbox is None:
                 print('Error !!! require bbox for centered_colormap')
@@ -182,12 +188,21 @@ class Lasot_depth(BaseVideoDataset):
 
         elif self.dtype == 'raw_depth':
             # No normalization here !!!!
-            image = cv2.merge((dp, dp, dp))
+            img = cv2.merge((dp, dp, dp))
 
         elif self.dtype == 'normalized_depth':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
+
+        elif self.dtype == 'color':
+            img = rgb
+
+        elif self.dtype == 'rgbcolormap':
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            img = cv2.merge((rgb, colormap))
 
         else:
             print('no such dtype ... : %s'%self.dtype)

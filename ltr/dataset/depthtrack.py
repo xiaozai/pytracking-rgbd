@@ -164,6 +164,9 @@ class DepthTrack(BaseVideoDataset):
         rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         dp = cv2.imread(depth_path, -1)
 
+        max_depth = min(np.max(dp), 10000)
+        dp[dp > max_depth] = max_depth
+
         if self.dtype == 'color':
             # img = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
             img = rgb
