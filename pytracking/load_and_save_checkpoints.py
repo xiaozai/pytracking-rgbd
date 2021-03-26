@@ -4,6 +4,7 @@ sys.path.append('../../pytracking-rgbd/pytracking')
 sys.path.append('../../pytracking-rgbd/ltr')
 
 from ltr.admin.loading import torch_load_legacy
+import torch
 
 if __name__ == '__main__':
 
