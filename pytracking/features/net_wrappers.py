@@ -1,7 +1,6 @@
 import torch
 from pytracking.utils.loading import load_network
 
-
 class NetWrapper:
     """Used for wrapping networks in pytracking.
     Network modules and functions can be accessed directly as if they were members of this class."""
