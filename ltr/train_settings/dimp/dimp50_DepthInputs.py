@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.optim as optim
-from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, DepthTrack
+from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, MSCOCOSeq_depth, Lasot_depth, CDTB, DepthTrack
 from ltr.data import processing, sampler, LTRLoader
 from ltr.models.tracking import dimpnet
 import ltr.models.loss as ltr_losses
@@ -28,21 +28,26 @@ def run(settings):
     settings.hinge_threshold = 0.05
     # settings.print_stats = ['Loss/total', 'Loss/iou', 'ClfTrain/clf_ce', 'ClfTrain/test_loss']
 
+    '''
+    Depth Inputs:
+        1) raw_depth                X
+        2) norm_depth
+        3) centered_norm_depth
+        4) centered_raw_depth       X
+
+        5) colormap
+        6) centered_colormap
+
+    '''
+    depth_inputs = 'norm_depth'
+    
     # Train datasets
-    # lasot_train = Lasot(settings.env.lasot_dir, split='train')
-    # got10k_train = Got10k(settings.env.got10k_dir, split='vottrain')
-    # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
-    # coco_train = MSCOCOSeq(settings.env.coco_dir)
-
-
-    depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype='color')
-    # depthtrack_horizontal_train = DepthTrack(root=settings.env.depthtrack_horizontal_dir, split='train', dtype='color')
-    # depthtrack_vertical_train = DepthTrack(root=settings.env.depthtrack_vertical_dir, split='train', dtype='color')
+    depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=depth_inputs)
+    coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=depth_inputs)
+    lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype=depth_inputs)
 
     # Validation datasets
-    # got10k_val = Got10k(settings.env.got10k_dir, split='votval')
-    depthtrack_val = DepthTrack(root=settings.env.depthtrack_dir, split='val', dtype='color')
-
+    depthtrack_val = DepthTrack(root=settings.env.depthtrack_dir, split='val', dtype='norm_depth')
 
     # Data transform
     transform_joint = tfm.Transform(tfm.ToGrayscale(probability=0.05))
@@ -78,10 +83,7 @@ def run(settings):
                                                     joint_transform=transform_joint)
 
     # Train sampler and loader
-    # dataset_train = sampler.DiMPSampler([lasot_train, got10k_train, trackingnet_train, coco_train], [0.25,1,1,1],
-    #                                     samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
-    #                                     processing=data_processing_train)
-    dataset_train = sampler.DiMPSampler([depthtrack_train], [1],
+    dataset_train = sampler.DiMPSampler([coco_train, lasot_depth_train, depthtrack_train], [1, 1, 1],
                                         samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
                                         processing=data_processing_train)
 
@@ -89,9 +91,6 @@ def run(settings):
                              shuffle=True, drop_last=True, stack_dim=1)
 
     # Validation samplers and loaders
-    # dataset_val = sampler.DiMPSampler([got10k_val], [1], samples_per_epoch=5000, max_gap=30,
-    #                                   num_test_frames=3, num_train_frames=3,
-    #                                   processing=data_processing_val)
     dataset_val = sampler.DiMPSampler([depthtrack_val], [1], samples_per_epoch=5000, max_gap=30,
                                       num_test_frames=3, num_train_frames=3,
                                       processing=data_processing_val)

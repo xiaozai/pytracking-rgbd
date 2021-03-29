@@ -179,7 +179,7 @@ class DepthTrack(BaseVideoDataset):
 
             img = cv2.merge((rgb, colormap))
 
-        elif self.dtype == 'centered_colormap':
+        elif self.dtype in ['centered_colormap', 'centered_norm_depth', 'centered_raw_depth']:
             if bbox is None:
                 print('Error !!! require bbox for centered_colormap')
                 return
@@ -192,7 +192,7 @@ class DepthTrack(BaseVideoDataset):
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
 
-        elif self.dtype == 'colormap_normalizeddepth':
+        elif self.dtype == 'colormap_norm_depth':
             '''
             Colormap + depth
             '''
@@ -202,12 +202,22 @@ class DepthTrack(BaseVideoDataset):
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
+            
+        elif self.dtype == 'colormap_raw_depth':
+            raw_dp = dp
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+
+            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            r, g, b = cv2.split(colormap)
+            # img = cv2.merge((r, g, b, dp))
+            img = np.stack((r, g, b, raw_dp), axis=2)
 
         elif self.dtype == 'raw_depth':
             # No normalization here !!!!
             image = cv2.merge((dp, dp, dp))
 
-        elif self.dtype == 'normalized_depth':
+        elif self.dtype == 'norm_depth':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3

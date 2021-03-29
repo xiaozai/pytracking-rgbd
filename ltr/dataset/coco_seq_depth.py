@@ -130,6 +130,16 @@ class MSCOCOSeq_depth(BaseVideoDataset):
 
     def _get_frames(self, seq_id, depth_threshold=None, bbox=None):
 
+        '''
+        dypte :
+            - raw_depth
+            - norm_depth
+            - centered_raw_depth
+            - centered_norm_depth
+            - colormap
+            - centered_colormap
+        '''
+
         rgb_path = self.coco_set.loadImgs([self.coco_set.anns[self.sequence_list[seq_id]]['image_id']])[0]['file_name']
 
         depth_path = rgb_path[:-4] + '.png'
@@ -142,7 +152,7 @@ class MSCOCOSeq_depth(BaseVideoDataset):
         max_depth = min(np.max(dp), 10000)
         dp[dp > max_depth] = max_depth
 
-        if self.dtype == 'centered_colormap':
+        if self.dtype in ['centered_colormap', 'centered_raw_depth', 'centered_norm_depth']:
             if bbox is None:
                 print('Error !!!  centered_colormap requires BBox ')
                 return
@@ -155,7 +165,7 @@ class MSCOCOSeq_depth(BaseVideoDataset):
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
 
-        elif self.dtype == 'colormap_depth':
+        elif self.dtype == 'colormap_norm_depth':
             '''
             Colormap + depth
             '''
@@ -164,11 +174,24 @@ class MSCOCOSeq_depth(BaseVideoDataset):
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
+            
+        elif self.dtype == 'colormap_raw_depth':
+            raw_dp = dp
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
 
-        elif self.dtype == 'depth_gray':
+            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            r, g, b = cv2.split(colormap)
+            # img = cv2.merge((r, g, b, dp))
+            img = np.stack((r, g, b, raw_dp), axis=2)
+
+        elif self.dtype == 'norm_depth':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
+
+        elif self.dtype == 'raw_depth':
+            img = np.stack((dp, dp, dp), axis=2)
 
         elif self.dtype == 'color':
             img = rgb

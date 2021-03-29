@@ -161,8 +161,8 @@ class Lasot_depth(BaseVideoDataset):
         dp = cv2.imread(depth_img_path, -1)
         max_depth = min(np.max(dp), 10000)
         dp[dp > max_depth] = max_depth
-        
-        if self.dtype == 'centered_colormap':
+
+        if self.dtype in ['centered_colormap', 'centered_raw_depth', 'centered_norm_depth']:
             if bbox is None:
                 print('Error !!! require bbox for centered_colormap')
                 return
@@ -175,7 +175,17 @@ class Lasot_depth(BaseVideoDataset):
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
 
-        elif self.dtype == 'colormap_normalizeddepth':
+        elif self.dtype == 'colormap_raw_depth':
+            raw_dp = dp
+            dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            dp = np.asarray(dp, dtype=np.uint8)
+
+            colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
+            r, g, b = cv2.split(colormap)
+            # img = cv2.merge((r, g, b, dp))
+            img = np.stack((r, g, b, raw_dp), axis=2)
+
+        elif self.dtype == 'colormap_norm_depth':
             '''
             Colormap + depth
             '''
@@ -190,7 +200,7 @@ class Lasot_depth(BaseVideoDataset):
             # No normalization here !!!!
             img = cv2.merge((dp, dp, dp))
 
-        elif self.dtype == 'normalized_depth':
+        elif self.dtype == 'norm_depth':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
