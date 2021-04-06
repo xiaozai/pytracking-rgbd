@@ -4,7 +4,7 @@ def local_env_settings():
     settings = EnvSettings()
 
     # Set your local paths here.
-    data_root = '/home/sgn/Data1/yan/'
+    data_root = '/home/yan/Data4/'
 
     settings.davis_dir = ''
     settings.got10k_path = ''

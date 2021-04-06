@@ -31,7 +31,7 @@ def sample_patch_transformed(im, pos, scale, image_sz, transforms, is_mask=False
 
     return im_patches
 
-
+    
 def sample_patch_multiscale(im, pos, scales, image_sz, mode: str='replicate', max_scale_change=None):
     """Extract image patches at multiple scales.
     args:

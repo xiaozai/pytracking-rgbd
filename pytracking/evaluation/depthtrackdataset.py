@@ -1,6 +1,6 @@
 import numpy as np
 from pytracking.evaluation.data import Sequence, BaseDataset, SequenceList
-
+import os
 
 class DepthTrackDataset(BaseDataset):
     """
@@ -77,6 +77,8 @@ class DepthTrackDataset(BaseDataset):
         return len(self.sequence_list)
 
     def _get_sequence_list(self):
+        # sequence_list = os.listdir(self.base_path)
+        # sequence_list = [seq for seq in sequence_list if os.path.isfile(os.path.join(self.base_path, seq, 'groundtruth.txt'))]
         sequence_list= ['adapter01_indoor',
                         'backpack_indoor',
                         'bag01_indoor',
