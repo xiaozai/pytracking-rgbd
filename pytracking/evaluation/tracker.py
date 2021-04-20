@@ -751,7 +751,8 @@ class Tracker:
         elif dtype in ['colormap', 'normalized_depth', 'raw_depth', 'centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
             depth_image_file = image_file
             dp = cv.imread(depth_image_file, -1)
-
+            dp[dp > 10000] = 10000
+            
             if dtype == 'colormap':
                 img = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
                 img = np.asarray(img, dtype=np.uint8)
@@ -760,9 +761,11 @@ class Tracker:
                 img = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
                 img = np.asarray(img, dtype=np.uint8)
                 img = cv.merge((img, img, img))
+
             elif dtype == 'raw_depth':
-                img = np.asarray(img)
+                img = np.asarray(dp)
                 img = np.stack((img, img, img), axis=2)
+
             elif dtype in ['centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
                 if bbox is None:
                     print('centered colormap requires BBox !!!')

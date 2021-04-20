@@ -40,9 +40,14 @@ def run(settings):
 
     '''
     depth_inputs = 'norm_depth'
-    
+
     # Train datasets
-    depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=depth_inputs)
+
+    
+    # depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=depth_inputs)
+
+
+
     coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=depth_inputs)
     lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype=depth_inputs)
 

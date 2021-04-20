@@ -4,7 +4,8 @@ def local_env_settings():
     settings = EnvSettings()
 
     # Set your local paths here.
-    data_root = '/home/yan/Data4/'
+    # data_root = '/home/yan/Data4/'
+    data_root = '/home/yan/Data2/'
 
     settings.davis_dir = ''
     settings.got10k_path = ''
@@ -15,7 +16,8 @@ def local_env_settings():
     settings.nfs_path = ''
     settings.otb_path = ''
     settings.result_plot_path = data_root + 'pytracking-models/result_plots/'
-    settings.results_path = data_root + 'pytracking-models/tracking_results/'    # Where to store tracking results
+    # settings.results_path = data_root + 'pytracking-models/tracking_results/'    # Where to store tracking results
+    settings.results_path = data_root + 'DOT-results/'
     settings.segmentation_path = ''
     settings.scoremap_path = ''
     settings.tn_packed_results_path = ''
@@ -23,7 +25,7 @@ def local_env_settings():
     settings.trackingnet_path = ''
     settings.uav_path = ''
     settings.vot_path = ''
-    settings.cdtb_path = data_root + 'Datasets/CDTB/'
+    settings.cdtb_path = data_root + 'vot-workspace-CDTB/sequences/' # 'Datasets/CDTB/'
     settings.youtubevos_dir = ''
     settings.depthtrack_path = data_root + 'Datasets/DeTrack-v1/test/'
 
