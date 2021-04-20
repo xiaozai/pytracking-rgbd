@@ -100,8 +100,8 @@ def run(settings):
                            shuffle=False, drop_last=True, epoch_interval=5, stack_dim=1)
 
     # Create network and actor
-    # net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=True, optim_iter=5,
-    net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=False, optim_iter=5,
+    # net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=True, optim_iter=5,  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=False, optim_iter=5,  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
                             clf_feat_norm=True, clf_feat_blocks=0, final_conv=True, out_feature_dim=512,
                             optim_init_step=0.9, optim_init_reg=0.1,
                             init_gauss_sigma=output_sigma * settings.feature_sz, num_dist_bins=100,
@@ -129,4 +129,4 @@ def run(settings):
 
     trainer = LTRTrainer(actor, [loader_train, loader_val], optimizer, settings, lr_scheduler)
 
-    trainer.train(100, load_latest=True, fail_safe=True)
+    trainer.train(50, load_latest=True, fail_safe=True)

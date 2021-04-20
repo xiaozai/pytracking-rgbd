@@ -28,7 +28,7 @@ class DepthTrack(BaseVideoDataset):
 
     """
 
-    def __init__(self, root=None, dtype='colormap', image_loader=jpeg4py_loader, vid_ids=None): #  split=None, data_fraction=None):
+    def __init__(self, root=None, dtype='colormap', split=None, image_loader=jpeg4py_loader, vid_ids=None): #  split=None, data_fraction=None):
         """
         args:
 
@@ -49,7 +49,8 @@ class DepthTrack(BaseVideoDataset):
         super().__init__('DepthTrack', root, image_loader)
 
         self.root = root
-        self.dtype = dtype                                                      # colormap or depth
+        self.dtype = dtype
+        self.split = split                                                   # colormap or depth
         self.sequence_list = self._build_sequence_list()
 
         self.seq_per_class, self.class_list = self._build_class_list()
@@ -60,10 +61,12 @@ class DepthTrack(BaseVideoDataset):
         '''
             We only have  the train set, no test set, here we use all 646 videos for training
         '''
-        # ltr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
-        # file_path = os.path.join(ltr_path, 'data_specs', 'lasot_depth.txt')
-        # sequence_list = pandas.read_csv(file_path, header=None, squeeze=True).values.tolist()
-        sequence_list = os.listdir(self.root)
+        if self.split is not None:
+            ltr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+            file_path = os.path.join(ltr_path, 'data_specs', 'depthtrack_%s.txt'%self.split)
+            sequence_list = pandas.read_csv(file_path, header=None, squeeze=True).values.tolist()
+        else:
+            sequence_list = os.listdir(self.root)
 
         return sequence_list
 
@@ -202,7 +205,7 @@ class DepthTrack(BaseVideoDataset):
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
-            
+
         elif self.dtype == 'colormap_raw_depth':
             raw_dp = dp
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
