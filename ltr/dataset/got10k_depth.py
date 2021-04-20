@@ -187,7 +187,7 @@ class Got10k_depth(BaseVideoDataset):
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
 
-        elif self.dtype == 'depth_gray':
+        elif self.dtype == 'normalized_depth':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
@@ -200,7 +200,7 @@ class Got10k_depth(BaseVideoDataset):
 
         elif self.dtype == 'color':
             img = rgb
-            
+
         return img
 
     def get_class_name(self, seq_id):
