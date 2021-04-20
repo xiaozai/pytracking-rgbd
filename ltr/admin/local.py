@@ -22,7 +22,7 @@ class EnvironmentSettings:
         self.cdtb_dir = root_path + 'Datasets/CDTB/'
 
         self.lasotdepth_dir = root_path + 'Datasets/EstimatedDepth/LaSOT/'
-        self.cocodepth_dir = root_path + 'Datasets/EstimatedDepth/COCO_densedepth/'
+        self.cocodepth_dir = root_path + 'Datasets/EstimatedDepth/COCO/'
 
         self.depthtrack_dir = root_path + 'Datasets/DeTrack-v1/train_annotated/'
         self.depthtrack_horizontal_dir = root_path + 'Datasets/DeTrack-v1/train_horizontal_flip/'

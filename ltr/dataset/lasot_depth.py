@@ -28,7 +28,7 @@ class Lasot_depth(BaseVideoDataset):
 
     """
 
-    def __init__(self, root=None, dtype='colormap', image_loader=jpeg4py_loader, vid_ids=None): #  split=None, data_fraction=None):
+    def __init__(self, root=None, rgb_root=None, dtype='colormap', image_loader=jpeg4py_loader, vid_ids=None): #  split=None, data_fraction=None):
         """
         args:
 
@@ -47,6 +47,8 @@ class Lasot_depth(BaseVideoDataset):
         """
         root = env_settings().lasotdepth_dir if root is None else root
         super().__init__('LaSOTDepth', root, image_loader)
+
+        self.rgb_root = rgb_root
 
         self.dtype = dtype                                                      # colormap or depth
         self.sequence_list = self._build_sequence_list()
