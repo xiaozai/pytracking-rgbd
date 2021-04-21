@@ -40,12 +40,13 @@ def run(settings):
 
     '''
     # depth_inputs = 'norm_depth'
-    depth_inputs = 'colormap'
+    # depth_inputs = 'colormap'
+    depth_inputs = 'hha'
 
     # Train datasets
     # depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=depth_inputs)
     coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=depth_inputs)
-    got10k_depth_train = MSCOCOSeq_depth(settings.env.got10kdepth_dir, dtype=depth_inputs)
+    # got10k_depth_train = MSCOCOSeq_depth(settings.env.got10kdepth_dir, dtype=depth_inputs)
     lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype=depth_inputs)
 
     # Validation datasets
@@ -85,7 +86,7 @@ def run(settings):
                                                     joint_transform=transform_joint)
 
     # Train sampler and loader
-    dataset_train = sampler.DiMPSampler([coco_train, got10k_depth_train, lasot_depth_train], [1, 1, 1],
+    dataset_train = sampler.DiMPSampler([coco_train, lasot_depth_train], [1, 1],
                                         samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
                                         processing=data_processing_train)
 

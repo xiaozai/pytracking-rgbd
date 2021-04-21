@@ -1,6 +1,6 @@
 # --*-- coding:utf-8 --*--
 import numpy as np
-from utils.util import *
+from .util import *
 np.seterr(divide='ignore', invalid='ignore')
 
 '''
@@ -70,11 +70,11 @@ def getPointCloudFromZ(Z, C, s=1):
     return x3, y3, z3
 
 '''
-  Clip out a 2R+1 x 2R+1 window at each point and estimate 
-  the normal from points within this window. In case the window 
-  straddles more than a single superpixel, only take points in the 
-  same superpixel as the centre pixel. 
-  
+  Clip out a 2R+1 x 2R+1 window at each point and estimate
+  the normal from points within this window. In case the window
+  straddles more than a single superpixel, only take points in the
+  same superpixel as the centre pixel.
+
 Input:
     depthImage: in meters
     missingMask:  boolean mask of what data was missing

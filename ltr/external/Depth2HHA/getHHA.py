@@ -5,8 +5,8 @@ import os
 import math
 import time
 
-from utils.rgbd_util import *
-from utils.getCameraParam import *
+from .utils.rgbd_util import *
+from .utils.getCameraParam import *
 
 '''
 must use 'COLOR_BGR2GRAY' here, or you will get a different gray-value with what MATLAB gets.
