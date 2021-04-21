@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.optim as optim
-from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, MSCOCOSeq_depth, Lasot_depth, CDTB, DepthTrack
+from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, MSCOCOSeq_depth, Lasot_depth, CDTB, DepthTrack, Got10k_depth
 from ltr.data import processing, sampler, LTRLoader
 from ltr.models.tracking import dimpnet
 import ltr.models.loss as ltr_losses
@@ -45,6 +45,7 @@ def run(settings):
     # Train datasets
     # depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=depth_inputs)
     coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=depth_inputs)
+    got10k_depth_train = MSCOCOSeq_depth(settings.env.got10kdepth_dir, dtype=depth_inputs)
     lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype=depth_inputs)
 
     # Validation datasets
@@ -84,7 +85,7 @@ def run(settings):
                                                     joint_transform=transform_joint)
 
     # Train sampler and loader
-    dataset_train = sampler.DiMPSampler([coco_train, lasot_depth_train], [1, 1],
+    dataset_train = sampler.DiMPSampler([coco_train, got10k_depth_train, lasot_depth_train], [1, 1, 1],
                                         samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
                                         processing=data_processing_train)
 
@@ -100,8 +101,8 @@ def run(settings):
                            shuffle=False, drop_last=True, epoch_interval=5, stack_dim=1)
 
     # Create network and actor
-    # net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=True, optim_iter=5,  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=False, optim_iter=5,  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=True, optim_iter=5,  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # net = dimpnet.dimpnet50(filter_size=settings.target_filter_sz, backbone_pretrained=False, optim_iter=5,  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
                             clf_feat_norm=True, clf_feat_blocks=0, final_conv=True, out_feature_dim=512,
                             optim_init_step=0.9, optim_init_reg=0.1,
                             init_gauss_sigma=output_sigma * settings.feature_sz, num_dist_bins=100,

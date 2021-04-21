@@ -120,9 +120,12 @@ class Got10k_depth(BaseVideoDataset):
         return self.seq_per_class[class_name]
 
     def _get_sequence_list(self):
-        with open(os.path.join(self.root, 'list.txt')) as f:
-            dir_list = list(csv.reader(f))
-        dir_list = [dir_name[0] for dir_name in dir_list]
+        if os.path.isfile(os.path.join(self.root, 'list.txt')):
+            with open(os.path.join(self.root, 'list.txt')) as f:
+                dir_list = list(csv.reader(f))
+            dir_list = [dir_name[0] for dir_name in dir_list]
+        else:
+            dir_list = ['GOT-10k_Train_%06d'%ii for ii in range(1, 9336)]
         return dir_list
 
     def _read_bb_anno(self, seq_path):
@@ -164,11 +167,15 @@ class Got10k_depth(BaseVideoDataset):
         return os.path.join(seq_path, 'color', '{:08}.jpg'.format(frame_id+1)) , os.path.join(seq_path, 'depth', '{:08}.png'.format(frame_id+1))    # frames start from 1
 
     def _get_frame(self, seq_path, frame_id):
-        # return self.image_loader(self._get_frame_path(seq_path, frame_id))
+
         rgb_img_path, depth_img_path = self._get_frame_path(seq_path, frame_id)
 
         rgb = cv2.imread(rgb_img_path)
-        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+        if rgb is not None:
+            rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+        else:
+            rgb = None
+            # print('rgb is None ')
 
         dp = cv2.imread(depth_img_path, -1)
 
