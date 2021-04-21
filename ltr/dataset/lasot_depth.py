@@ -13,6 +13,8 @@ import cv2
 
 from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
 
+from external.Depth2HHA import getHHA
+
 class Lasot_depth(BaseVideoDataset):
     """ LaSOT dataset.
 
@@ -161,6 +163,7 @@ class Lasot_depth(BaseVideoDataset):
         rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
 
         dp = cv2.imread(depth_img_path, -1)
+
         max_depth = min(np.max(dp), 10000)
         dp[dp > max_depth] = max_depth
 
@@ -209,6 +212,10 @@ class Lasot_depth(BaseVideoDataset):
 
         elif self.dtype == 'color':
             img = rgb
+
+        elif self.dtype == 'hha':
+            dp = dp / 1000
+            img = getHHA(dp, dp)
 
         elif self.dtype == 'rgbcolormap':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)

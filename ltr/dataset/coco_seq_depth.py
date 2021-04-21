@@ -10,6 +10,8 @@ import numpy as np
 import cv2
 from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
 
+from external.Depth2HHA import getHHA
+
 class MSCOCOSeq_depth(BaseVideoDataset):
     """ The COCO dataset. COCO is an image dataset. Thus, we treat each image as a sequence of length 1.
 
@@ -174,7 +176,7 @@ class MSCOCOSeq_depth(BaseVideoDataset):
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             r, g, b = cv2.split(colormap)
             img = cv2.merge((r, g, b, dp))
-            
+
         elif self.dtype == 'colormap_raw_depth':
             raw_dp = dp
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
@@ -195,6 +197,10 @@ class MSCOCOSeq_depth(BaseVideoDataset):
 
         elif self.dtype == 'color':
             img = rgb
+
+        elif self.dtype == 'hha':
+            dp = dp / 1000 # meter
+            img = getHHA(dp, dp)
 
         elif self.dtype == 'rgbcolormap':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)

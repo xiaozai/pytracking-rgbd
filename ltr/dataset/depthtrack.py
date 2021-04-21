@@ -13,6 +13,9 @@ import cv2
 
 from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
 
+from external.Depth2HHA import getHHA
+
+
 class DepthTrack(BaseVideoDataset):
     """ LaSOT dataset.
 
@@ -231,9 +234,14 @@ class DepthTrack(BaseVideoDataset):
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((r, g, b, dp))
 
+        elif self.dtype == 'hha':
+            dp = dp / 1000
+            img = getHHA(dp, dp)
+            
         else:
             print('no such dtype ... : %s'%self.dtype)
             img = None
+
 
         return img
 

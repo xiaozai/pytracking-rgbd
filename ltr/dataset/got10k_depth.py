@@ -12,6 +12,9 @@ from ltr.admin.environment import env_settings
 import numpy as np
 import cv2
 
+from external.Depth2HHA import getHHA
+
+
 class Got10k_depth(BaseVideoDataset):
     """ GOT-10k dataset.
 
@@ -178,7 +181,8 @@ class Got10k_depth(BaseVideoDataset):
             # print('rgb is None ')
 
         dp = cv2.imread(depth_img_path, -1)
-
+        max_depth = min(np.max(dp), 10000)
+        dp[dp > max_depth] = max_depth
 
         if self.dtype == 'colormap':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
@@ -207,6 +211,10 @@ class Got10k_depth(BaseVideoDataset):
 
         elif self.dtype == 'color':
             img = rgb
+
+        elif self.dtype == 'hha':
+            dp = dp / 1000
+            img = getHHA(dp, dp)
 
         return img
 
