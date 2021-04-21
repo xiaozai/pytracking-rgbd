@@ -23,7 +23,7 @@ D: Depth image, the unit of each element in it is "meter"
 RD: Raw depth image, the unit of each element in it is "meter"
 '''
 def getHHA(D, RD):
-
+    tic = time.time()
     C = getCameraParam('color') # camera_matrix
 
     missingMask = (RD == 0);
@@ -61,6 +61,8 @@ def getHHA(D, RD):
     # np.uint8: 256->1, but in MATLAB, uint8: 256->255
     I[I>255] = 255
     HHA = I.astype(np.uint8)
+    toc = time.time()
+    print('hha time : ', toc - tic)
     return HHA
 
 if __name__ == "__main__":
