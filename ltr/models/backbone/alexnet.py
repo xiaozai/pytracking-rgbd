@@ -1,3 +1,6 @@
+import torch
+import torch.nn as nn
+
 class AlexNet(nn.Module):
 
     def __init__(self, output_layers, num_classes: int = 1000) -> None:
@@ -62,7 +65,7 @@ class AlexNet(nn.Module):
         raise ValueError('output_layer is wrong.')
 
 
-def alexnet(output_layers=None, pretrained: bool = False, progress: bool = True, **kwargs: Any) -> AlexNet:
+def alexnet(output_layers=None, pretrained: bool = False, progress: bool = True, **kwargs):
     r"""AlexNet model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/1404.5997>`_ paper.
     Args:

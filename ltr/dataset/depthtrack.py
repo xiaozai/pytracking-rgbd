@@ -13,7 +13,7 @@ import cv2
 
 from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
 
-from external.Depth2HHA import getHHA
+from ltr.external.Depth2HHA import getHHA
 
 
 class DepthTrack(BaseVideoDataset):
@@ -237,7 +237,7 @@ class DepthTrack(BaseVideoDataset):
         elif self.dtype == 'hha':
             dp = dp / 1000
             img = getHHA(dp, dp)
-            
+
         else:
             print('no such dtype ... : %s'%self.dtype)
             img = None

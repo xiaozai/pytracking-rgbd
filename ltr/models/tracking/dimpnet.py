@@ -122,7 +122,6 @@ class DiMPnet_DeT(nn.Module):
 
     def extract_features(self, im, layers=None):
         '''Song not sure about this '''
-        print('Song in dimpnet.py extract_features')
         dims = im.shape
         if layers is None:
             layers = self.bb_regressor_layer + ['classification']

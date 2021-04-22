@@ -13,7 +13,7 @@ import cv2
 
 from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
 
-from external.Depth2HHA import getHHA
+from ltr.external.Depth2HHA import getHHA
 
 class Lasot_depth(BaseVideoDataset):
     """ LaSOT dataset.

@@ -67,7 +67,9 @@ def parameters():
     # params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/dimp50_DepthInputs_scratch_LaSOT_COCO/DiMPnet_ep0050.pth.tar',
     #                              use_gpu=params.use_gpu)
 
-    params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/DOT50_Colormap_LaSOT_COCO_PretrainedDiMP_scratch/DiMPnet_ep0100.pth.tar',
+    # params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/DOT50_Colormap_LaSOT_COCO_PretrainedDiMP_scratch/DiMPnet_ep0100.pth.tar',
+    #                              use_gpu=params.use_gpu)
+    params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/DOT50_Colormap_LaSOT_COCO_Got10k_scratch_PretrainedBackbone/DiMPnet_ep0050.pth.tar',
                                  use_gpu=params.use_gpu)
 
     params.vot_anno_conversion_type = 'preserve_area'

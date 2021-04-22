@@ -10,7 +10,7 @@ import numpy as np
 import cv2
 from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
 
-from external.Depth2HHA import getHHA
+from ltr.external.Depth2HHA import getHHA
 
 class MSCOCOSeq_depth(BaseVideoDataset):
     """ The COCO dataset. COCO is an image dataset. Thus, we treat each image as a sequence of length 1.

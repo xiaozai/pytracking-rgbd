@@ -27,10 +27,8 @@ class DiMP(BaseTracker):
         self.frame_num = 1
         if not self.params.has('device'):
             self.params.device = 'cuda' if self.params.use_gpu else 'cpu'
-
         # Initialize network
         self.initialize_features()
-
         # The DiMP network
         self.net = self.params.net
 
@@ -48,7 +46,6 @@ class DiMP(BaseTracker):
         # Get object id
         self.object_id = info.get('object_ids', [None])[0]
         self.id_str = '' if self.object_id is None else ' {}'.format(self.object_id)
-
         # Set sizes
         self.image_sz = torch.Tensor([im.shape[2], im.shape[3]])
         sz = self.params.image_sample_size
@@ -92,6 +89,7 @@ class DiMP(BaseTracker):
 
 
     def track(self, image, info: dict = None) -> dict:
+
         self.debug_info = {}
 
         self.frame_num += 1

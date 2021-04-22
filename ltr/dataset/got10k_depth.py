@@ -12,7 +12,7 @@ from ltr.admin.environment import env_settings
 import numpy as np
 import cv2
 
-from external.Depth2HHA import getHHA
+from ltr.external.Depth2HHA import getHHA
 
 
 class Got10k_depth(BaseVideoDataset):

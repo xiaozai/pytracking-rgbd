@@ -123,7 +123,7 @@ class VGGM(nn.Module):
 
         raise ValueError('output_layer is wrong.')
 
-def vggm(output_layers=None, pretrained='imagenet', **kwargs: Any):
+def vggm(output_layers=None, pretrained='imagenet', **kwargs):
     if pretrained:
         settings = pretrained_settings['vggm'][pretrained]
         assert num_classes == settings['num_classes'], \
