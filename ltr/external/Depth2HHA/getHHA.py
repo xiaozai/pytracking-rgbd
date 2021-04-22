@@ -65,24 +65,30 @@ def getHHA(D, RD):
     print('hha time : ', toc - tic)
     return HHA
 
+def hole_filling(depth):
+
+    return depth
+
+
 if __name__ == "__main__":
     # D, RD = getImage()
     depth_path = '/home/yan/Data4/Datasets/DeTrack-v1/test/adapter01_indoor/depth/'
     ii = 10
 
-    D = cv2.imread(depth_path + '%08d.png'%ii, -1)
-    D = D / 1000
+    RD = cv2.imread(depth_path + '%08d.png'%ii, -1)
+    RD = RD / 1000
 
+    D = hole_filling(RD)
     # tic = time.time()
     # camera_matrix = getCameraParam('color')
     # print('max gray value: ', np.max(D))        # make sure that the image is in 'meter'
-    hha_complete = getHHA(D, D)
+    hha_complete = getHHA(D, RD)
     # toc = time.time()
     # print('time : ', toc - tic)
 
     # cv2.imshow('hha', hha)
     cv2.imshow('hha_complete', hha_complete)
-    cv2.imshow('D', D)
+    cv2.imshow('RD', RD)
     cv2.waitKey(0)
 
     ''' multi-peocessing example '''
