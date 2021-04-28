@@ -14,6 +14,8 @@ import cv2
 
 from ltr.external.Depth2HHA import getHHA
 
+from ltr.dataset.depth_utils import sigmoid
+
 
 class Got10k_depth(BaseVideoDataset):
     """ GOT-10k dataset.
@@ -213,9 +215,24 @@ class Got10k_depth(BaseVideoDataset):
             img = rgb
 
         elif self.dtype == 'hha':
-            dp = dp / 1000
-            img = getHHA(dp, dp)
+            hha_path = os.path.join(seq_path, 'hha')
+            if not os.path.isdir(hha_path):
+                os.mkdir(hha_path)
 
+            hha_img = os.path.join(hha_path, '{:08}.png'.format(frame_id+1))
+            print(hha_img)
+            if not os.path.isfile(hha_img):
+
+                dp = dp / 1000
+                img = getHHA(dp, dp)
+                cv2.imwrite(hha_img, img)
+            else:
+                img = cv2.imread(hha_img)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        elif self.dtype == 'sigmoid':
+            img = sigmoid(dp)
+            
         return img
 
     def get_class_name(self, seq_id):

@@ -11,7 +11,7 @@ from ltr.data.image_loader import jpeg4py_loader
 from ltr.admin.environment import env_settings
 import cv2
 
-from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
+from ltr.dataset.depth_utils import sigmoid, get_target_depth, get_layered_image_by_depth
 
 from ltr.external.Depth2HHA import getHHA
 
@@ -162,7 +162,11 @@ class Lasot_depth(BaseVideoDataset):
         rgb = cv2.imread(rgb_img_path)
         rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
 
-        dp = cv2.imread(depth_img_path, -1)
+
+        if os.path.isfile(os.path.join(seq_path, 'segDepth', '{:08}.png'.format(frame_id+1))):
+            dp = cv2.imread(os.path.join(seq_path, 'segDepth', '{:08}.png'.format(frame_id+1)),-1)
+        else:
+            dp = cv2.imread(depth_img_path, -1)
 
         max_depth = min(np.max(dp), 10000)
         dp[dp > max_depth] = max_depth
@@ -214,8 +218,21 @@ class Lasot_depth(BaseVideoDataset):
             img = rgb
 
         elif self.dtype == 'hha':
-            dp = dp / 1000
-            img = getHHA(dp, dp)
+
+            hha_path = os.path.join(seq_path, 'hha')
+            if not os.path.isdir(hha_path):
+                os.mkdir(hha_path)
+
+            hha_img = os.path.join(hha_path,'{:08}.png'.format(frame_id+1)) # frames start from 1
+            print(hha_img)
+            if not os.path.isfile(hha_img):
+                dp = dp / 1000
+                img = getHHA(dp, dp)
+                cv2.imwrite(hha_img, img)
+            else:
+                img = cv2.imread(hha_img)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
 
         elif self.dtype == 'rgbcolormap':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
@@ -223,6 +240,9 @@ class Lasot_depth(BaseVideoDataset):
             colormap = cv2.applyColorMap(dp, cv2.COLORMAP_JET)
             img = cv2.merge((rgb, colormap))
 
+        elif self.dtype == 'sigmoid':
+            img = sigmoid(dp)
+            
         else:
             print('no such dtype ... : %s'%self.dtype)
             img = None

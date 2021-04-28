@@ -15,7 +15,9 @@ from pytracking.evaluation.multi_object_wrapper import MultiObjectWrapper
 from pathlib import Path
 import torch
 
-from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
+from ltr.dataset.depth_utils import sigmoid, get_target_depth, get_layered_image_by_depth
+
+from ltr.external.Depth2HHA import getHHA
 
 import numpy as np
 import math
@@ -752,7 +754,7 @@ class Tracker:
             depth_image_file = image_file
             dp = cv.imread(depth_image_file, -1)
             dp[dp > 10000] = 10000
-            
+
             if dtype == 'colormap':
                 img = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
                 img = np.asarray(img, dtype=np.uint8)
@@ -773,6 +775,15 @@ class Tracker:
 
                 target_depth = get_target_depth(dp, bbox)
                 img = get_layered_image_by_depth(dp, target_depth, dtype=dtype)
+
+            elif dtype == 'hha':
+
+                dp = dp / 1000 # meter
+                img = getHHA(dp, dp)
+
+            elif dtype == 'sigmoid':
+                img = sigmoid(dp)
+
             else:
                 print('No such dtype !!! ')
                 img = None

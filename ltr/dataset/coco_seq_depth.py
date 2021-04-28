@@ -8,7 +8,7 @@ from collections import OrderedDict
 from ltr.admin.environment import env_settings
 import numpy as np
 import cv2
-from ltr.dataset.depth_utils import get_target_depth, get_layered_image_by_depth
+from ltr.dataset.depth_utils import sigmoid, get_target_depth, get_layered_image_by_depth
 
 from ltr.external.Depth2HHA import getHHA
 
@@ -50,8 +50,8 @@ class MSCOCOSeq_depth(BaseVideoDataset):
         root = env_settings().cocodepth_dir if root is None else root
         super().__init__('COCO_depth', root, image_loader)
 
-        # self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))
-        self.img_pth = os.path.join(root, '{}{}/'.format(split, version))
+        # self.img_path = os.path.join(root, 'images/{}{}/'.format(split, version))
+        self.img_path = os.path.join(root, '{}{}/'.format(split, version))
         self.anno_path = os.path.join(root, 'annotations/instances_{}{}.json'.format(split, version))
 
         self.dtype = dtype
@@ -146,10 +146,13 @@ class MSCOCOSeq_depth(BaseVideoDataset):
 
         depth_path = rgb_path[:-4] + '.png'
 
-        rgb = cv2.imread(os.path.join(self.img_pth, 'color', rgb_path))
+        rgb = cv2.imread(os.path.join(self.img_path, 'color', rgb_path))
         rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
 
-        dp = cv2.imread(os.path.join(self.img_pth, 'depth', depth_path), -1)
+        if os.path.isfile(os.path.join(self.img_path, 'segDepth', depth_path)):
+            dp = cv2.imread(os.path.join(self.img_path, 'segDepth', depth_path),-1)
+        else:
+            dp = cv2.imread(os.path.join(self.img_path, 'depth', depth_path), -1)
 
         max_depth = min(np.max(dp), 10000)
         dp[dp > max_depth] = max_depth
@@ -199,8 +202,23 @@ class MSCOCOSeq_depth(BaseVideoDataset):
             img = rgb
 
         elif self.dtype == 'hha':
-            dp = dp / 1000 # meter
-            img = getHHA(dp, dp)
+
+            hha_path = os.path.join(self.img_path, 'hha')
+            if not os.path.isdir(hha_path):
+                os.mkdir(hha_path)
+
+            hha_img = os.path.join(hha_path, depth_path)
+            print(hha_img)
+            if not os.path.isfile(hha_img):
+                dp = dp / 1000 # meter
+                img = getHHA(dp, dp)
+                cv2.imwrite(hha_img, img)
+            else:
+                img = cv2.imread(hha_img)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        elif self.dtype == 'sigmoid':
+            img = sigmoid(dp)
 
         elif self.dtype == 'rgbcolormap':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)

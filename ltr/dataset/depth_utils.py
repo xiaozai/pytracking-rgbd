@@ -10,6 +10,27 @@ class p_config(object):
     grabcut_iter = 3
     radius = 500
 
+def sigmoid(dp, mu=None, sigma=4):
+    dp = dp / 1000
+
+    if mu is None:
+        mu = np.median(dp)
+
+    upper = 1.8*mu
+    lower = 0.2*mu
+
+    dp[dp > upper] = upper
+    dp[dp < lower] = lower
+
+    img = 1 / (1 + np.exp((dp-mu) / sigma))
+
+    # colormap
+    img = cv2.normalize(img, None, 0, 1, cv2.NORM_MINMAX)
+    img = np.asarray(img*255, dtype=np.uint8)
+    img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
+
+    return img
+
 def get_layered_image_by_depth(depth_image, target_depth, dtype='centered_colormap'):
 
     p = p_config()
