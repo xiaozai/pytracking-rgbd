@@ -12,6 +12,7 @@ import ltr.data.bounding_box_utils as bbutils
 from ltr.models.target_classifier.initializer import FilterInitializerZero
 from ltr.models.layers import activation
 
+from ltr.dataset.depth_utils import get_target_mask
 
 class DiMP(BaseTracker):
 
@@ -22,7 +23,7 @@ class DiMP(BaseTracker):
             self.params.net.initialize()
         self.features_initialized = True
 
-    def initialize(self, image, info: dict) -> dict:
+    def initialize(self, image, info: dict, depth_im=None) -> dict:
         # Initialize some stuff
         self.frame_num = 1
         if not self.params.has('device'):
@@ -84,11 +85,22 @@ class DiMP(BaseTracker):
         if self.params.get('use_iou_net', True):
             self.init_iou_net(init_backbone_feat)
 
+        ''' Song add the Occlusion Detection '''
+        if depth_im is not None:
+            first_frame_prediction = info['init_bbox']
+            print('Song in dimp.py first_frame_prediction : ', first_frame_prediction)
+            depth_value,mask_area,valid_ratio,outlay_ratio=self.compute_depth_value_and_mask_area(depth_im,first_frame_prediction)
+            depth_sqrt_area=depth_value*np.sqrt(mask_area)
+            self.first_frame_depth_sqrt_area=depth_sqrt_area
+            self.first_frame_depth_value=depth_value
+            self.first_frame_mask_area=mask_area
+            print(depth_value, "      ",depth_sqrt_area, "      ", valid_ratio,"      ",outlay_ratio)
+
         out = {'time': time.time() - tic}
         return out
 
 
-    def track(self, image, info: dict = None) -> dict:
+    def track(self, image, depth_im = None, info: dict = None) -> dict:
 
         self.debug_info = {}
 
@@ -115,7 +127,8 @@ class DiMP(BaseTracker):
         scores_raw = self.classify_target(test_x)
 
         # Localize the target
-        translation_vec, scale_ind, s, flag = self.localize_target(scores_raw, sample_pos, sample_scales)
+        translation_vec, scale_ind, s, flag = self.localize_target(scores_raw, sample_pos, sample_scales) # Song Here can add depth cues
+        print('Song in pytracking.tracker.dimp.dimp.py line 119 , flag = ', flag)
         new_pos = sample_pos[scale_ind,:] + translation_vec
 
         # Update position and scale
@@ -128,6 +141,26 @@ class DiMP(BaseTracker):
             elif self.params.get('use_classifier', True):
                 self.update_state(new_pos, sample_scales[scale_ind])
 
+        ''' Re-detection ? '''
+
+
+
+
+        '''Song use depth for occlusion detection ...
+        -----------------------------------------------------------------------''''
+        prediction_state = torch.cat((self.pos[[1,0]] - (self.target_sz[[1,0]]-1)/2, self.target_sz[[1,0]]))
+        if prediction_state is not None and len(prediction_state) > 0:
+            depth_value,mask_area,valid_ratio,outlay_ratio = self.compute_depth_value_and_mask_area(depth_im, prediction_state)
+            # depth_area = depth_value * mask_area
+            depth_sqrt_area = depth_value * np.sqrt(mask_area)
+            print(depth_value, "      ",depth_sqrt_area, "      ", valid_ratio,"      ",outlay_ratio)
+
+            if valid_ratio>0.5 and outlay_ratio<0.5:
+                if depth_sqrt_area>1.3*self.first_frame_depth_sqrt_area or depth_sqrt_area<0.7*self.first_frame_depth_sqrt_area:
+                    print('Song in dimp.py line 154, not found ')
+                    flag="not_found"
+
+        '''---------------------------------------------------------------------'''
 
         # ------- UPDATE ------- #
 
@@ -174,6 +207,50 @@ class DiMP(BaseTracker):
         return out
 
 
+    def compute_depth_value_and_mask_area(self,depth_im,prediction):
+        depth_im=depth_im.astype(np.float)
+
+        ''' Song : dimp has no mask , we generate it from bbox
+
+            depth_im : B * 3 * H * W ??
+        '''
+        print('depth_im shape = ', depth_im.shape)
+        print('prediction shape = ', prediction.shape)
+
+        masks = get_target_mask(depth_im, prediction)
+
+        if len(masks.shape)==4:
+            masks=masks.squeeze(1)
+        mask_area=np.sum(np.sum(masks,axis=1),axis=1)
+
+        depth_ex=depth_im[None,]
+        mask_depth=masks*depth_ex
+
+
+        valid_point=np.sum(np.sum(mask_depth>0,axis=1),axis=1)
+        valid_ratio=valid_point/mask_area
+
+        # plt.figure(11)
+        # plt.imshow(mask_depth[0])
+        # plt.draw()
+        # plt.pause(0.001)
+
+        mask_depth[mask_depth==0]=np.nan
+        depth_value_mean=np.nanmean(np.nanmean(mask_depth,axis=1),axis=1)
+        depth_value_median=np.nanmedian(np.nanmedian(mask_depth, axis=1), axis=1)
+
+        outlay_high=mask_depth>(depth_value_median+512).reshape(-1,1,1)
+        outlay_high_num=np.nansum(np.nansum(outlay_high,axis=1),axis=1)
+
+        outlay_low=mask_depth<(depth_value_median-512).reshape(-1,1,1)
+        outlay_low_num=np.nansum(np.nansum(outlay_low,axis=1),axis=1)
+
+
+        outlay_ratio=(outlay_high_num+outlay_low_num)/valid_point
+
+
+        return depth_value_median,mask_area,valid_ratio,outlay_ratio
+
     def get_sample_location(self, sample_coord):
         """Get the location of the extracted sample."""
         sample_coord = sample_coord.float()
@@ -217,6 +294,7 @@ class DiMP(BaseTracker):
             scores = F.conv2d(scores.view(-1,1,*scores.shape[-2:]), kernel, padding=score_filter_ksz//2).view(scores.shape)
 
         if self.params.get('advanced_localization', False):
+            print('Song dimp.py line 221 advanced_localization ....')
             return self.localize_advanced(scores, sample_pos, sample_scales)
 
         # Get maximum

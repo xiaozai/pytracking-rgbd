@@ -82,6 +82,80 @@ def remove_bubbles(image, bubbles_size=100):
 
     return image
 
+def get_target_mask(depth, target_box):
+    '''
+        To estimate the target depth by using cv2.grabCut
+    '''
+
+    p = p_config()
+
+    H, W = depth.shape
+
+    target_box = [int(bb) for bb in target_box]
+    x0, y0, w0, h0 = target_box
+    x0 = max(x0, 0)
+    y0 = max(y0, 0)
+    x1 = min(x0+w0, W)
+    y1 = min(y0+h0, H)
+    possible_target = depth[y0:y1, x0:x1]
+    median_depth = np.median(possible_target) + 10
+
+    # bubbles_size = int(target_box[2]*target_box[3]*0.1)
+    try:
+        ''' add the surrounding extra pixels as the background '''
+        extra_y0 = max(y0 - p.grabcut_extra, 0)
+        extra_x0 = max(x0 - p.grabcut_extra, 0)
+        extra_y1 = min(y1 + p.grabcut_extra, H)
+        extra_x1 = min(x1 + p.grabcut_extra, W)
+
+        ''' new coordinates in cropped patch with extra pixels'''
+        rect_x0 = x0 - extra_x0
+        rect_y0 = y0 - extra_y0
+        rect_x1 = min(rect_x0 + w0, extra_x1)
+        rect_y1 = min(rect_y0 + h0, extra_y1)
+        rect = [rect_x0, rect_y0, rect_x1-rect_x0, rect_y1-rect_y0]
+
+        target_patch = depth[extra_y0:extra_y1, extra_x0:extra_x1]
+        target_patch = np.nan_to_num(target_patch, nan=np.max(target_patch))
+
+        ''' filter depth image, then convert to colormap '''
+        image = target_patch.copy()
+        image[image>median_depth*2] = median_depth*2 # !!!!!!!!!!
+        image[image < 10] = median_depth*2
+
+        '''To downsample the target_patch in order to speed up the cv2.grabCut'''
+        i_H, i_W = image.shape
+        rz_factor = p.grabcut_rz_factor if min(i_W, i_H) > p.grabcut_rz_threshold else 1
+        rect_rz = [int(rt//rz_factor) for rt in rect]
+        rz_dim = (int(i_W//rz_factor), int(i_H//rz_factor))
+
+        image = cv2.resize(image, rz_dim, interpolation=cv2.INTER_AREA)
+        # image = remove_bubbles(image, bubbles_size=bubbles_size)
+        image = cv2.normalize(image, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        image = np.asarray(image, dtype=np.uint8)
+        image = cv2.applyColorMap(image, cv2.COLORMAP_JET)
+
+        ''' 0-pixels and 2-pixels are background(set to 0), 1-pixels and 3-pixels are foreground(set to 1)'''
+        mask_init = np.zeros(image.shape[:2], np.uint8)
+        bgdModel = np.zeros((1,65), np.float64)
+        fgdModel = np.zeros((1,65), np.float64)
+        cv2.grabCut(image, mask_init, rect_rz, bgdModel, fgdModel, p.grabcut_iter, cv2.GC_INIT_WITH_RECT)
+        mask = np.where((mask_init==2)|(mask_init==0),0,1).astype('uint8')
+        # mask = remove_bubbles(mask, bubbles_size=bubbles_size)
+        mask = cv2.resize(mask, (i_W, i_H), interpolation=cv2.INTER_AREA)
+
+        '''crop'''
+        mask = mask[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
+
+    except:
+        mask = np.ones((int(target_box[2]), int(target_box[3])))
+
+    plt.subplot(111)
+    plt.imshow(mask)
+    plt.show(block=False)
+    
+    return mask
+
 def get_target_depth(depth, target_box):
 
     '''
