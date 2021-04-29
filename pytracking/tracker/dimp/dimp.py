@@ -148,17 +148,18 @@ class DiMP(BaseTracker):
 
         '''Song use depth for occlusion detection ...
         -----------------------------------------------------------------------''''
-        prediction_state = torch.cat((self.pos[[1,0]] - (self.target_sz[[1,0]]-1)/2, self.target_sz[[1,0]]))
-        if prediction_state is not None and len(prediction_state) > 0:
-            depth_value,mask_area,valid_ratio,outlay_ratio = self.compute_depth_value_and_mask_area(depth_im, prediction_state)
-            # depth_area = depth_value * mask_area
-            depth_sqrt_area = depth_value * np.sqrt(mask_area)
-            print(depth_value, "      ",depth_sqrt_area, "      ", valid_ratio,"      ",outlay_ratio)
+        if depth_im is not None:
+            prediction_state = torch.cat((self.pos[[1,0]] - (self.target_sz[[1,0]]-1)/2, self.target_sz[[1,0]]))
+            if prediction_state is not None and len(prediction_state) > 0:
+                depth_value,mask_area,valid_ratio,outlay_ratio = self.compute_depth_value_and_mask_area(depth_im, prediction_state)
+                # depth_area = depth_value * mask_area
+                depth_sqrt_area = depth_value * np.sqrt(mask_area)
+                print(depth_value, "      ",depth_sqrt_area, "      ", valid_ratio,"      ",outlay_ratio)
 
-            if valid_ratio>0.5 and outlay_ratio<0.5:
-                if depth_sqrt_area>1.3*self.first_frame_depth_sqrt_area or depth_sqrt_area<0.7*self.first_frame_depth_sqrt_area:
-                    print('Song in dimp.py line 154, not found ')
-                    flag="not_found"
+                if valid_ratio>0.5 and outlay_ratio<0.5:
+                    if depth_sqrt_area>1.3*self.first_frame_depth_sqrt_area or depth_sqrt_area<0.7*self.first_frame_depth_sqrt_area:
+                        print('Song in dimp.py line 154, not found ')
+                        flag="not_found"
 
         '''---------------------------------------------------------------------'''
 

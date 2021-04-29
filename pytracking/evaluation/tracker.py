@@ -194,7 +194,13 @@ class Tracker:
             self.visualize(image, init_info.get('init_bbox'))
 
         start_time = time.time()
-        out = tracker.initialize(image, init_info)
+
+        if seq.dtype == 'sigmoid_depth':
+            out = tracker.initialize(image['sigmoid'], init_info,  depth_im=image['depth'])
+        elif seq.dtype == 'colormap_depth':
+            out = tracker.initialize(image['colormap'], init_info,  depth_im=image['depth'])
+        else:
+            out = tracker.initialize(image, init_info)
 
         if out is None:
             out = {}
@@ -232,7 +238,12 @@ class Tracker:
             info = seq.frame_info(frame_num)
             info['previous_output'] = prev_output
 
-            out = tracker.track(image, info)
+            if seq.dtype == 'sigmoid_depth':
+                out = tracker.track(image['sigmoid'], info, depth_im=image['depth'])
+            elif seq.dtype == 'colormap_depth':
+                out = tracker.track(image['colormap'], info, depth_im=image['depth'])
+            else:
+                out = tracker.track(image, info)
 
             prev_output = OrderedDict(out)
             _store_outputs(out, {'time': time.time() - start_time})
@@ -750,7 +761,7 @@ class Tracker:
             depth_image = cv.applyColorMap(depth_image, cv.COLORMAP_JET)
             img = cv.merge((color_image, depth_image))
 
-        elif dtype in ['sigmoid','hha', 'colormap', 'normalized_depth', 'raw_depth', 'centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
+        else:
             depth_image_file = image_file
             dp = cv.imread(depth_image_file, -1)
             dp[dp > 10000] = 10000
@@ -783,6 +794,27 @@ class Tracker:
 
             elif dtype == 'sigmoid':
                 img = sigmoid(dp)
+
+            elif dtype == 'sigmoid_depth':
+                depth = dp
+
+                sig = dp / 1000
+                sig = sigmoid(sig)
+
+                img = {}
+                img['sigmoid'] = sig
+                img['depth'] = depth
+
+            elif dtype == 'colormap_depth':
+                depth = dp
+
+                colormap = cv.normalize(dp, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
+                colormap = np.asarray(colormap, dtype=np.uint8)
+                colormap = cv.applyColorMap(colormap, cv.COLORMAP_JET)
+
+                img = {}
+                img['colormap'] = colormap
+                img['depth'] = depth
 
             else:
                 print('No such dtype !!! ')
