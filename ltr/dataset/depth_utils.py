@@ -21,7 +21,7 @@ def sigmoid(dp, mu=None, sigma=4, U=1.8, L=0.2):
 
     upper = U * mu
     lower = L * mu
-    
+
     # dp[dp > upper] = upper
     # dp[dp < lower] = lower
     dp[dp > upper] = 0
@@ -158,7 +158,7 @@ def get_target_mask(depth, target_box):
     plt.subplot(111)
     plt.imshow(mask)
     plt.show(block=False)
-    
+
     return mask
 
 def get_target_depth(depth, target_box):
@@ -246,3 +246,36 @@ def get_target_depth(depth, target_box):
 
     # print('Traget depth : ', target_depth)
     return target_depth
+
+if __name__ == '__main__':
+
+    data_path = '/home/sgn/Data1/yan/Datasets/EstimatedDepth/LaSOT/'
+    sequences = os.path.listdir(data_path)
+
+    for seq in sequences:
+        if os.path.isdir(os.path.join(data_path, seq)):
+            depth_path = os.path.join(data_path, seq, 'depth')
+            gt_path = os.path.join(data_path, seq, 'groundtruth.txt')
+
+            with open(gt_path, 'r') as fp:
+                bboxes = fp.readlines()
+            bboxes = [box.strip() for box in bboxes]
+
+            num_frames = len(os.path.listdir(depth_path))
+
+            depth_values = np.zeros(num_frames)
+
+            for ii in range(1, num_frames+1):
+                frame_path = os.path.join(depth_path, '%08d.png')
+
+                depth = cv2.imread(frame_path, -1)
+                box = bboxes[ii-1]
+                box = [int(float(b)) for b in box.split(',')]
+
+                target_depth = get_target_depth(depth, box)
+                depth_values[ii-1] = target_depth
+
+            out_path = os.path.join(data_path, seq, 'target_depth.txt')
+            with open(out_path, 'w') as fp:
+                for ii in range(num_frames):
+                    fp.write('%f\n'%depth_values[ii])
