@@ -750,7 +750,7 @@ class Tracker:
             depth_image = cv.applyColorMap(depth_image, cv.COLORMAP_JET)
             img = cv.merge((color_image, depth_image))
 
-        elif dtype in ['colormap', 'normalized_depth', 'raw_depth', 'centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
+        elif dtype in ['sigmoid','hha', 'colormap', 'normalized_depth', 'raw_depth', 'centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
             depth_image_file = image_file
             dp = cv.imread(depth_image_file, -1)
             dp[dp > 10000] = 10000

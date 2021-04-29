@@ -10,17 +10,22 @@ class p_config(object):
     grabcut_iter = 3
     radius = 500
 
-def sigmoid(dp, mu=None, sigma=4):
+def sigmoid(dp, mu=None, sigma=4, U=1.8, L=0.2):
     dp = dp / 1000
+    dp = np.nan_to_num(dp, nan=0)
+    dp_values = dp[np.nonzero(dp)]
 
     if mu is None:
-        mu = np.median(dp)
+        # mu = np.median(dp)
+        mu = np.median(dp_values)
 
-    upper = 1.8*mu
-    lower = 0.2*mu
-
-    dp[dp > upper] = upper
-    dp[dp < lower] = lower
+    upper = U * mu
+    lower = L * mu
+    
+    # dp[dp > upper] = upper
+    # dp[dp < lower] = lower
+    dp[dp > upper] = 0
+    dp[dp < lower] = 0
 
     img = 1 / (1 + np.exp((dp-mu) / sigma))
 
