@@ -60,11 +60,9 @@ def parameters():
     params.box_refinement_step_length = 1
     params.box_refinement_step_decay = 1
 
-    # params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/dimp50_RGB/dimp50.pth',
+    # params.net = NetWithBackbone(net_path='/home/yan/Data2/pytracking-models/ltr/checkpoints/ltr/dimp/dimp50.pth',
     #                              use_gpu=params.use_gpu)
-    # params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/dimp50_DepthInputs_sigmoid/DiMPnet_ep0050.pth.tar',
-    #                              use_gpu=params.use_gpu)
-    params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/dimp50_RGB/dimp50.pth',
+    params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/DOT50_Colormap_Three_new_SP/DiMPnet_ep0050.pth.tar',
                                  use_gpu=params.use_gpu)
     # params.net = NetWithBackbone(net_path='/home/sgn/Data1/yan/pytracking-models/checkpoints/ltr/dimp/dimp50_DepthInputs_scratch_LaSOT_COCO/DiMPnet_ep0050.pth.tar',
     #                              use_gpu=params.use_gpu)

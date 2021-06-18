@@ -178,6 +178,37 @@ class Lasot_depth(BaseVideoDataset):
             target_depth = get_target_depth(dp, bbox)
             img = get_layered_image_by_depth(dp, target_depth, dtype=self.dtype)
 
+        elif self.dtype == 'R':
+            img = rgb[:, :, 0]
+            img = cv2.merge((img, img, img))
+
+        elif self.dtype == 'G':
+            img = rgb[:, :, 1]
+            img = cv2.merge((img, img, img))
+
+        elif self.dtype == 'B':
+            img = rgb[:, :, 2]
+            img = cv2.merge((img, img, img))
+
+        elif self.dtype == 'RColormap':
+            R = rgb[:, :, 0]
+            R = cv2.normalize(R, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            R = np.asarray(R, dtype=np.uint8)
+            img = cv2.applyColorMap(R, cv2.COLORMAP_JET)
+
+
+        elif self.dtype == 'GColormap':
+            G = rgb[:, :, 1]
+            G = cv2.normalize(G, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            G = np.asarray(G, dtype=np.uint8)
+            img = cv2.applyColorMap(G, cv2.COLORMAP_JET)
+
+        elif self.dtype == 'BColormap':
+            B = rgb[:, :, 2]
+            B = cv2.normalize(B, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            B = np.asarray(B, dtype=np.uint8)
+            img = cv2.applyColorMap(B, cv2.COLORMAP_JET)
+
         elif self.dtype == 'colormap':
 
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
@@ -209,13 +240,43 @@ class Lasot_depth(BaseVideoDataset):
             # No normalization here !!!!
             img = cv2.merge((dp, dp, dp))
 
-        elif self.dtype == 'norm_depth':
+        elif self.dtype == 'normalized_depth':
             dp = cv2.normalize(dp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             dp = np.asarray(dp, dtype=np.uint8)
             img = cv2.merge((dp, dp, dp)) # H * W * 3
 
         elif self.dtype == 'color':
             img = rgb
+
+        elif self.dtype == 'R':
+            img = rgb[:, :, 0]
+            img = cv2.merge((img, img, img))
+
+        elif self.dtype == 'G':
+            img = rgb[:, :, 1]
+            img = cv2.merge((img, img, img))
+
+        elif self.dtype == 'B':
+            img = rgb[:, :, 2]
+            img = cv2.merge((img, img, img))
+
+        elif self.dtype == 'RColormap':
+            R = rgb[:, :, 0]
+            R = cv.normalize(R, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+            R = np.asarray(R, dtype=np.uint8)
+            img = cv.applyColorMap(R, cv.COLORMAP_JET)
+
+        elif self.dtype == 'GColormap':
+            G = rgb[:, :, 1]
+            G = cv.normalize(G, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+            G = np.asarray(G, dtype=np.uint8)
+            img = cv.applyColorMap(G, cv.COLORMAP_JET)
+
+        elif self.dtype == 'BColormap':
+            B = rgb[:, :, 2]
+            B = cv.normalize(B, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+            B = np.asarray(B, dtype=np.uint8)
+            img = cv.applyColorMap(B, cv.COLORMAP_JET)
 
         elif self.dtype == 'hha':
 
@@ -242,7 +303,7 @@ class Lasot_depth(BaseVideoDataset):
 
         elif self.dtype == 'sigmoid':
             img = sigmoid(dp)
-            
+
         else:
             print('no such dtype ... : %s'%self.dtype)
             img = None

@@ -20,11 +20,9 @@ class EnvironmentSettings:
         self.davis_dir = ''
         self.youtubevos_dir = ''
         self.cdtb_dir = root_path + 'Datasets/CDTB/'
-
+        self.cdtb_st_dir = root_path + 'Datasets/CDTB-ST/'
         self.lasotdepth_dir = root_path + 'Datasets/EstimatedDepth/LaSOT/'
         self.cocodepth_dir = root_path + 'Datasets/EstimatedDepth/COCO/'
         self.got10kdepth_dir = root_path + 'Datasets/EstimatedDepth/Got10k/train/'
 
         self.depthtrack_dir = root_path + 'Datasets/DeTrack-v1/train_annotated/'
-        self.depthtrack_horizontal_dir = root_path + 'Datasets/DeTrack-v1/train_horizontal_flip/'
-        self.depthtrack_vertical_dir = root_path + 'Datasets/DeTrack-v1/train_vertical_flip/'

@@ -34,7 +34,7 @@ def run(settings):
     # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
     # coco_train = MSCOCOSeq(settings.env.coco_dir)
 
-    dtype = 'normalized_depth'
+    dtype = 'B'
 
     depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=dtype)
     # coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=dtype)

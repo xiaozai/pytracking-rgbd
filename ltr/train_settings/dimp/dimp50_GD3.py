@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.optim as optim
-from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, DepthTrack, Got10k_depth, MSCOCOSeq_depth, Lasot_depth
+from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, DepthTrack, Got10k_depth, MSCOCOSeq_depth, Lasot_depth, CDTB
 from ltr.data import processing, sampler, LTRLoader
 from ltr.models.tracking import dimpnet
 import ltr.models.loss as ltr_losses
@@ -36,10 +36,11 @@ def run(settings):
 
     dtype = 'normalized_depth'
 
-    depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=dtype)
-    # coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=dtype)
-    # got10k_depth_train = Got10k_depth(settings.env.got10kdepth_dir, dtype=dtype)
-    # lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype=dtype)
+    cdtb_depth_train = CDTB(root=settings.env.cdtb_dir, split=None, dtype=dtype)
+    # depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=dtype)
+    coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=dtype)
+    got10k_depth_train = Got10k_depth(settings.env.got10kdepth_dir, dtype=dtype)
+    lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype=dtype)
 
     # depthtrack_horizontal_train = DepthTrack(root=settings.env.depthtrack_horizontal_dir, split='train', dtype='color')
     # depthtrack_vertical_train = DepthTrack(root=settings.env.depthtrack_vertical_dir, split='train', dtype='color')
@@ -86,7 +87,7 @@ def run(settings):
     # dataset_train = sampler.DiMPSampler([lasot_train, got10k_train, trackingnet_train, coco_train], [0.25,1,1,1],
     #                                     samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
     #                                     processing=data_processing_train)
-    dataset_train = sampler.DiMPSampler([depthtrack_train], [1],
+    dataset_train = sampler.DiMPSampler([cdtb_depth_train], [1],
                                         samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
                                         processing=data_processing_train)
 

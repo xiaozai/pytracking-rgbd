@@ -24,7 +24,9 @@ def local_env_settings():
     settings.uav_path = ''
     settings.vot_path = ''
     settings.cdtb_path = data_root + 'Datasets/CDTB/'
+    settings.cdtb_st_path = data_root + 'Datasets/CDTB-ST/'
     settings.youtubevos_dir = ''
     settings.depthtrack_path = data_root + 'Datasets/DeTrack-v1/test/'
+    settings.depthtrack_st_path = data_root + 'Datasets/DepthTrack-v1-ST/test/'
 
     return settings

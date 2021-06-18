@@ -11,7 +11,7 @@ from ltr.data.image_loader import jpeg4py_loader
 from ltr.admin.environment import env_settings
 import cv2 as cv
 
-class CDTB(BaseVideoDataset):
+class CDTB_ST(BaseVideoDataset):
     """ CDTB dataset
 
         return
@@ -35,8 +35,8 @@ class CDTB(BaseVideoDataset):
                         options can be used at the same time.
             data_fraction - Fraction of dataset to be used. The complete dataset is used by default
         """
-        root = env_settings().cdtb_dir if root is None else root
-        super().__init__('CDTB', root, image_loader)
+        root = env_settings().cdtb_st_dir if root is None else root
+        super().__init__('CDTB_ST', root, image_loader)
 
         # all folders inside the root
         self.sequence_list = self._get_sequence_list()
@@ -57,7 +57,7 @@ class CDTB(BaseVideoDataset):
             self.sequence_list = [self.sequence_list[i] for i in seq_ids]
         else:
             # raise ValueError('Set either split_name or vid_ids.')
-            print('Using all 80 sequences ...')
+            print('Using all 152 sequences ...')
 
         if data_fraction is not None:
             self.sequence_list = random.sample(self.sequence_list, int(len(self.sequence_list)*data_fraction))
@@ -71,7 +71,7 @@ class CDTB(BaseVideoDataset):
         self.dtype = dtype
 
     def get_name(self):
-        return 'cdtb_depth'
+        return 'cdtb_st'
 
     def has_class_info(self):
         return True

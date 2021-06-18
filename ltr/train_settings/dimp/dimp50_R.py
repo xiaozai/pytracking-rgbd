@@ -34,7 +34,7 @@ def run(settings):
     # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
     # coco_train = MSCOCOSeq(settings.env.coco_dir)
 
-    dtype = 'normalized_depth'
+    dtype = 'R'
 
     depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=dtype)
     # coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=dtype)
@@ -133,4 +133,4 @@ def run(settings):
 
     trainer = LTRTrainer(actor, [loader_train, loader_val], optimizer, settings, lr_scheduler)
 
-    trainer.train(100, load_latest=True, fail_safe=True)
+    trainer.train(50, load_latest=True, fail_safe=True)

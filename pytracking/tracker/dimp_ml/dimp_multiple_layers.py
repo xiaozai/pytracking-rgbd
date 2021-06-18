@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import math
 import time
 from pytracking import dcf, TensorList
-from pytracking.features.preprocessing import numpy_to_torch
+from pytracking.features.preprocessing import numpy_to_torch, torch_to_numpy
 from pytracking.utils.plotting import show_tensor, plot_graph
 from pytracking.features.preprocessing import sample_patch_multiscale, sample_patch_transformed
 from pytracking.features import augmentation
@@ -12,10 +12,11 @@ import ltr.data.bounding_box_utils as bbutils
 from ltr.models.target_classifier.initializer import FilterInitializerZero
 from ltr.models.layers import activation
 
-from ltr.dataset.depth_utils import get_target_mask, get_target_depth_and_mask
+from ltr.dataset.depth_utils import get_target_mask, get_target_depth, get_layered_image_by_depth
 
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 
 class DiMP(BaseTracker):
 
@@ -39,13 +40,25 @@ class DiMP(BaseTracker):
         # Time initialization
         tic = time.time()
 
+        state = info['init_bbox']
+
+        # Get Target layer
+        target_depth = get_target_depth(image, state)
+
+        # Get Target layer
+        target_depth = get_target_depth(image, state)
+        print(target_depth)
+        target_layer = get_layered_image_by_depth(image, target_depth)
+
+        self.layer_id = int(target_depth // 2000)
+        print('layer id : ', self.layer_id)
         # Convert image
-        im = numpy_to_torch(image) # HxWx6 -> 6 * H * W
+        # im = numpy_to_torch(image) # HxWx6 -> 6 * H * W
+        im = numpy_to_torch(target_layer)
 
         # Get target position and size
-        state = info['init_bbox']
+
         self.pos = torch.Tensor([state[1] + (state[3] - 1)/2, state[0] + (state[2] - 1)/2])
-        self.last_pos = self.pos
         self.target_sz = torch.Tensor([state[3], state[2]])
 
         # Get object id
@@ -100,27 +113,84 @@ class DiMP(BaseTracker):
         self.frame_num += 1
         self.debug_info['frame_num'] = self.frame_num
 
-        # Convert image
-        im = numpy_to_torch(image)
+        # track on each layer
+        # 0-2 m 2-4m, 4-6m , 6-8m, 8-10m, 10-inf
+        max_score = 0
+        flag = 'not_found'
+        new_pos = [-1, -1, -1, -1]
+        scale_ind = None
+        backbone_feat = None
+        test_x = None
+        sample_pos = None
+        s = None
+        sample_coords = None
 
-        # ------- LOCALIZATION ------- #
+        target_dist = 0
+        final_layer = image
+        print(np.max(image))
 
-        # Extract backbone features
-        backbone_feat, sample_coords, im_patches = self.extract_backbone_features(im, self.get_centered_sample_pos(),
-                                                                                  self.target_scale * self.params.scale_factors,
-                                                                                  self.img_sample_sz)
-        # Extract classification features
-        test_x = self.get_classification_features(backbone_feat)
+        start = max(0, self.layer_id-1)
+        end = min(11, self.layer_id+2)
+        for z_dist in range(start, end):
+            if z_dist == 10:
+                lower = 10000 # 10 meter
+                upper = np.max(image)
+            else:
+                lower = z_dist * 1000
+                upper = (z_dist + 2) * 1000
 
-        # Location of sample
-        sample_pos, sample_scales = self.get_sample_location(sample_coords)
+            layer = image.copy()
+            layer[layer > upper] = 0
+            layer[layer < lower] = 0
 
-        # Compute classification scores
-        scores_raw = self.classify_target(test_x)
+            print(lower, upper, np.median(np.nonzero(layer)))
 
-        # Localize the target
-        translation_vec, scale_ind, s, flag = self.localize_target(scores_raw, sample_pos, sample_scales) #
-        new_pos = sample_pos[scale_ind,:] + translation_vec
+            layer = (layer - lower) / (upper - lower)
+            layer = np.asarray(layer*255, dtype=np.uint8)
+            layer = cv2.applyColorMap(layer, cv2.COLORMAP_JET)
+            layer = numpy_to_torch(layer)
+
+            # Extract backbone features
+            backbone_feat_layer, sample_coords_layer, im_patches_layer = self.extract_backbone_features(layer, self.get_centered_sample_pos(),
+                                                                                                  self.target_scale * self.params.scale_factors,
+                                                                                                  self.img_sample_sz)
+            # Extract classification features
+            test_x_layer = self.get_classification_features(backbone_feat_layer)
+
+            # Location of sample
+            sample_pos_layer, sample_scales_layer = self.get_sample_location(sample_coords_layer)
+
+            # Compute classification scores
+            scores_raw_layer = self.classify_target(test_x_layer)
+
+            # Localize the target
+            translation_vec_layer, scale_ind_layer, s_layer, flag_layer = self.localize_target(scores_raw_layer, sample_pos_layer, sample_scales_layer) # Song Here can add depth cues
+            new_pos_layer = sample_pos_layer[scale_ind_layer,:] + translation_vec_layer
+
+            score_map_layer = s_layer[scale_ind_layer, ...]
+            max_score_layer = torch.max(score_map_layer).item()
+
+            if flag_layer != 'not_found' and max_score_layer > max_score:
+                flag = flag_layer
+                max_score = max_score_layer
+                new_pos = new_pos_layer
+                scale_ind = scale_ind_layer
+                sample_pos = sample_pos_layer
+                backbone_feat = backbone_feat_layer
+                test_x = test_x_layer
+                sample_scales = sample_scales_layer
+                s = s_layer
+                target_dist = z_dist
+                sample_coords = sample_coords_layer
+
+                final_layer = layer
+
+
+        # if max_score > 0.8:
+        # self.layer_id = target_dist
+
+        print('Choose %d meter ... ' % target_dist, flag, max_score)
+
 
         # Update position and scale
         if flag != 'not_found':
@@ -152,21 +222,23 @@ class DiMP(BaseTracker):
         if self.params.get('use_iou_net', True) and flag != 'not_found' and hasattr(self, 'pos_iounet'):
             self.pos = self.pos_iounet.clone()
 
-        score_map = s[scale_ind, ...]
-        max_score = torch.max(score_map).item()
+        if flag != 'not_found':
+            score_map = s[scale_ind, ...]
+            max_score = torch.max(score_map).item()
 
-        ''' Song '''
-        max_score = np.clip(max_score, 0, 1.0)
+            # Visualize and set debug info
+            self.search_area_box = torch.cat((sample_coords[scale_ind,[1,0]], sample_coords[scale_ind,[3,2]] - sample_coords[scale_ind,[1,0]] - 1))
+            self.debug_info['flag' + self.id_str] = flag
+            self.debug_info['max_score' + self.id_str] = max_score
+            if self.visdom is not None:
+                self.visdom.register(score_map, 'heatmap', 2, 'Score Map' + self.id_str)
+                self.visdom.register(self.debug_info, 'info_dict', 1, 'Status')
+            elif self.params.debug >= 2:
+                show_tensor(score_map, 5, title='Max score = {:.2f}'.format(max_score))
 
-        # Visualize and set debug info
-        self.search_area_box = torch.cat((sample_coords[scale_ind,[1,0]], sample_coords[scale_ind,[3,2]] - sample_coords[scale_ind,[1,0]] - 1))
-        self.debug_info['flag' + self.id_str] = flag
-        self.debug_info['max_score' + self.id_str] = max_score
-        if self.visdom is not None:
-            self.visdom.register(score_map, 'heatmap', 2, 'Score Map' + self.id_str)
-            self.visdom.register(self.debug_info, 'info_dict', 1, 'Status')
-        elif self.params.debug >= 2:
-            show_tensor(score_map, 5, title='Max score = {:.2f}'.format(max_score))
+        else:
+            max_score = 0
+            final_layer = image
 
         # Compute output bounding box
         new_state = torch.cat((self.pos[[1,0]] - (self.target_sz[[1,0]]-1)/2, self.target_sz[[1,0]]))
@@ -176,8 +248,12 @@ class DiMP(BaseTracker):
         else:
             output_state = new_state.tolist()
 
-        out = {'target_bbox': output_state, 'confidence': max_score}
+            target_depth = get_target_depth(image, output_state)
+            self.layer_id = int(target_depth // 2000)
+
+        out = {'target_bbox': output_state, 'confidence': max_score, 'image': torch_to_numpy(final_layer)}
         return out
+
 
     def get_sample_location(self, sample_coord):
         """Get the location of the extracted sample."""

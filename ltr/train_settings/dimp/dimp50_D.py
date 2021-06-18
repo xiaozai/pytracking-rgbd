@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.optim as optim
-from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, DepthTrack, Got10k_depth, MSCOCOSeq_depth, Lasot_depth
+from ltr.dataset import Lasot, Got10k, TrackingNet, MSCOCOSeq, DepthTrack, Got10k_depth, MSCOCOSeq_depth, Lasot_depth, CDTB, CDTB_ST
 from ltr.data import processing, sampler, LTRLoader
 from ltr.models.tracking import dimpnet
 import ltr.models.loss as ltr_losses
@@ -34,12 +34,14 @@ def run(settings):
     # trackingnet_train = TrackingNet(settings.env.trackingnet_dir, set_ids=list(range(4)))
     # coco_train = MSCOCOSeq(settings.env.coco_dir)
 
-    dtype = 'normalized_depth'
+    dtype = 'colormap'
 
-    depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=dtype)
-    # coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=dtype)
-    # got10k_depth_train = Got10k_depth(settings.env.got10kdepth_dir, dtype=dtype)
-    # lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype=dtype)
+    cdtb_depth_train = CDTB(root=settings.env.cdtb_dir, split=None, dtype=dtype)
+    cdtb_st_train = CDTB_ST(root=settings.env.cdtb_st_dir, split=None, dtype=dtype)
+    # depthtrack_train = DepthTrack(root=settings.env.depthtrack_dir, split='train', dtype=dtype)
+    coco_train = MSCOCOSeq_depth(settings.env.cocodepth_dir, dtype=dtype)
+    got10k_depth_train = Got10k_depth(settings.env.got10kdepth_dir, dtype=dtype)
+    lasot_depth_train = Lasot_depth(root=settings.env.lasotdepth_dir, rgb_root=settings.env.lasot_dir, dtype=dtype)
 
     # depthtrack_horizontal_train = DepthTrack(root=settings.env.depthtrack_horizontal_dir, split='train', dtype='color')
     # depthtrack_vertical_train = DepthTrack(root=settings.env.depthtrack_vertical_dir, split='train', dtype='color')
@@ -86,7 +88,7 @@ def run(settings):
     # dataset_train = sampler.DiMPSampler([lasot_train, got10k_train, trackingnet_train, coco_train], [0.25,1,1,1],
     #                                     samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
     #                                     processing=data_processing_train)
-    dataset_train = sampler.DiMPSampler([depthtrack_train], [1],
+    dataset_train = sampler.DiMPSampler([cdtb_depth_train], [1],
                                         samples_per_epoch=26000, max_gap=30, num_test_frames=3, num_train_frames=3,
                                         processing=data_processing_train)
 
@@ -128,9 +130,16 @@ def run(settings):
                             {'params': actor.net.bb_regressor.parameters()},
                             {'params': actor.net.feature_extractor.parameters(), 'lr': 2e-5}],
                            lr=2e-4)
+    # optimizer = optim.Adam([{'params': actor.net.classifier.filter_initializer.parameters(), 'lr': 1e-4},
+    #                         {'params': actor.net.classifier.filter_optimizer.parameters(), 'lr': 1e-4},
+    #                         {'params': actor.net.classifier.feature_extractor.parameters(), 'lr': 1e-45},
+    #                         {'params': actor.net.bb_regressor.parameters()},
+    #                         {'params': actor.net.feature_extractor.parameters(), 'lr': 1e-4}],
+    #                        lr=1e-4)
 
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.2)
+    # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.2)
 
     trainer = LTRTrainer(actor, [loader_train, loader_val], optimizer, settings, lr_scheduler)
 
-    trainer.train(100, load_latest=True, fail_safe=True)
+    trainer.train(150, load_latest=True, fail_safe=True)

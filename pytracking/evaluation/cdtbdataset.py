@@ -35,7 +35,7 @@ class CDTBDDataset(BaseDataset):
 
         end_frame = ground_truth_rect.shape[0]
 
-        if self.dtype in ['sigmoid','colormap', 'normalized_depth', 'raw_depth', 'centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
+        if self.dtype in ['sigmoid', 'sigmoid_depth', 'colormap_depth', 'colormap', 'normalized_depth', 'raw_depth', 'centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
             group = 'depth'
         elif self.dtype == 'color':
             group = self.dtype

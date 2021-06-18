@@ -191,7 +191,12 @@ class Tracker:
         image = self._read_image(seq.frames[0], dtype=seq.dtype, bbox=bbox)
 
         if tracker.params.visualization and self.visdom is None:
-            self.visualize(image, init_info.get('init_bbox'))
+            if seq.dtype == 'sigmoid_depth':
+                self.visualize(image['sigmoid'], init_info.get('init_bbox'))
+            elif seq.dtype == 'colormap_depth':
+                self.visualize(image['colormap'], init_info.get('init_bbox'))
+            else:
+                self.visualize(image, init_info.get('init_bbox'))
 
         start_time = time.time()
 
@@ -239,11 +244,11 @@ class Tracker:
             info['previous_output'] = prev_output
 
             if seq.dtype == 'sigmoid_depth':
-                out = tracker.track(image['sigmoid'], info, depth_im=image['depth'])
+                out = tracker.track(image['sigmoid'], info=info, depth_im=image['depth'])
             elif seq.dtype == 'colormap_depth':
-                out = tracker.track(image['colormap'], info, depth_im=image['depth'])
+                out = tracker.track(image['colormap'], info=info, depth_im=image['depth'])
             else:
-                out = tracker.track(image, info)
+                out = tracker.track(image, info=info)
 
             prev_output = OrderedDict(out)
             _store_outputs(out, {'time': time.time() - start_time})
@@ -252,7 +257,17 @@ class Tracker:
             if self.visdom is not None:
                 tracker.visdom_draw_tracking(image, out['target_bbox'], segmentation)
             elif tracker.params.visualization:
-                self.visualize(image, out['target_bbox'], segmentation) # Song !!!!
+                if seq.dtype == 'sigmoid_depth':
+                    print(image['sigmoid'].shape)
+                    print(out['target_bbox'])
+                    print(segmentation)
+                    self.visualize(image['sigmoid'], out['target_bbox'], segmentation) # Song !!!!
+                elif seq.dtype == 'colormap_depth':
+                    self.visualize(image['colormap'], out['target_bbox'], segmentation) # Song !!!!
+                elif seq.dtype == 'raw_depth':
+                    self.visualize(out['image'], out['target_bbox'], segmentation)
+                else:
+                    self.visualize(image, out['target_bbox'], segmentation) # Song !!!!
 
         for key in ['target_bbox', 'segmentation', 'confidence']: #, 'score_map']:
             if key in output and len(output[key]) <= 1:
@@ -697,7 +712,6 @@ class Tracker:
     def visualize(self, image, state, segmentation=None):
 
         dims = image.shape
-
         if dims[-1] == 6:
             color = image[:, :, :3]
             color = cv.cvtColor(color, cv.COLOR_BGR2RGB)
@@ -751,6 +765,53 @@ class Tracker:
             im = cv.imread(image_file)
             return cv.cvtColor(im, cv.COLOR_BGR2RGB)
 
+        elif dtype == 'R':
+            im = cv.imread(image_file)
+            im = cv.cvtColor(im, cv.COLOR_BGR2RGB)
+            im = im[:, :, 0]
+            im = cv.merge((im, im, im))
+            return im
+
+        elif dtype == 'G':
+            im = cv.imread(image_file)
+            im = cv.cvtColor(im, cv.COLOR_BGR2RGB)
+            im = im[:, :, 1]
+            im = cv.merge((im, im, im))
+            return im
+        elif dtype == 'B':
+            im = cv.imread(image_file)
+            im = cv.cvtColor(im, cv.COLOR_BGR2RGB)
+            im = im[:, :, 2]
+            im = cv.merge((im, im, im))
+            return im
+
+        elif dtype == 'RColormap':
+            rgb = cv.imread(image_file)
+            rgb = cv.cvtColor(rgb, cv.COLOR_BGR2RGB)
+            R = rgb[:, :, 0]
+            R = cv.normalize(R, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+            R = np.asarray(R, dtype=np.uint8)
+            img = cv.applyColorMap(R, cv.COLORMAP_JET)
+            return img
+
+        elif dtype == 'GColormap':
+            rgb = cv.imread(image_file)
+            rgb = cv.cvtColor(rgb, cv.COLOR_BGR2RGB)
+            G = rgb[:, :, 1]
+            G = cv.normalize(G, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+            G = np.asarray(G, dtype=np.uint8)
+            img = cv.applyColorMap(G, cv.COLORMAP_JET)
+            return img
+
+        elif dtype == 'BColormap':
+            rgb = cv.imread(image_file)
+            rgb = cv.cvtColor(rgb, cv.COLOR_BGR2RGB)
+            B = rgb[:, :, 2]
+            B = cv.normalize(B, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+            B = np.asarray(B, dtype=np.uint8)
+            img = cv.applyColorMap(B, cv.COLORMAP_JET)
+            return img
+
         elif dtype == 'rgbcolormap':
 
             color_image = cv.imread(image_file['color'])
@@ -760,9 +821,11 @@ class Tracker:
             depth_image = np.asarray(depth_image, dtype=np.uint8)
             depth_image = cv.applyColorMap(depth_image, cv.COLORMAP_JET)
             img = cv.merge((color_image, depth_image))
+            return img
 
         else:
             depth_image_file = image_file
+
             dp = cv.imread(depth_image_file, -1)
             dp[dp > 10000] = 10000
 
@@ -776,8 +839,9 @@ class Tracker:
                 img = cv.merge((img, img, img))
 
             elif dtype == 'raw_depth':
-                img = np.asarray(dp)
-                img = np.stack((img, img, img), axis=2)
+                # img = np.asarray(dp)
+                img = dp
+                # img = np.stack((img, img, img), axis=2)
 
             elif dtype in ['centered_colormap', 'centered_normalized_depth', 'centered_raw_depth']:
                 if bbox is None:
